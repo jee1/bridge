@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from bridge.connectors import connector_registry
 from bridge.orchestrator.app import app
 from bridge.orchestrator.celery_app import celery_app
 
@@ -11,11 +12,11 @@ def test_health_check():
     assert response.json()["status"] == "ok"
 
 
-def test_plan_task_returns_steps():
+def test_plan_task_returns_steps_and_context():
     client = TestClient(app)
     payload = {
         "intent": "describe churn",
-        "sources": ["postgresql"],
+        "sources": ["mock"],
         "required_tools": ["sql_executor"],
         "context": {},
     }
@@ -30,9 +31,16 @@ def test_plan_task_returns_steps():
     details = queue_step["details"]
     assert details["job_id"]
     if celery_app.conf.task_always_eager:
-        assert details["result_preview"]["status"] == "completed"
-        assert details["result_preview"]["intent"] == payload["intent"]
+        result_preview = details["result_preview"]
+        assert result_preview["status"] == "completed"
+        assert result_preview["intent"] == payload["intent"]
+        assert result_preview["collected_sources"][0]["source"] == "mock"
+        assert not result_preview["missing_sources"]
 
 
 def test_celery_is_eager_by_default():
     assert celery_app.conf.task_always_eager is True
+
+
+def test_connector_registry_has_default_mock():
+    assert "mock" in connector_registry.list()

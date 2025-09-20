@@ -29,7 +29,7 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 - 감사 로그는 구조화된 JSON으로 `/logs/audit/`에 저장하고, OpenTelemetry로 메트릭을 수집합니다.
 
 ## 주요 기술 스택
-- **언어 & 런타임**: Python 3.11, Poetry 또는 uv 개발 툴체인.
+- **언어 & 런타임**: Python 3.11, 표준 Python 프로젝트 설정.
 - **웹/API**: FastAPI, pydantic v2, Uvicorn, Celery/Redis(비동기 작업 큐).
 - **데이터 액세스**: SQLAlchemy 2.x, asyncpg, pymongo, elasticsearch-py, databricks-sql-connector.
 - **AI & ML**: LangChain, OpenAI SDK, sentence-transformers(유사도 분석), pandas/Polars(데이터 처리).
@@ -46,7 +46,7 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 
 ## 개발 및 배포 고려 사항
 - 로컬 개발은 `make install` 후 `make dev`로 API와 샌드박스 에이전트를 동시 기동합니다.
-- 비동기 태스크 실행은 `make worker`로 Celery 워커를 기동하며, 기억성 환경에서는 기본적으로 eager 모드이므로 별도 워커 없이도 동작합니다.
+- 비동기 태스크 실행은 Celery 워커를 기동하며, 로컬 환경에서는 기본적으로 eager 모드이므로 별도 워커 없이도 동작합니다.
 - 테스트는 pytest + coverage(`make test -- --cov`)를 실행하고, 통합 테스트 시 Docker Compose로 의존 DB를 띄웁니다.
 - 환경 변수는 `BRIDGE_<DOMAIN>_<PURPOSE>` 규칙을 따르며, `.env.example`을 기반으로 설정합니다.
 - CICD 파이프라인에서 fmt → lint → test → build 순으로 검증하고, 이미지 태그는 `bridge-api:<git-sha>` 패턴을 사용합니다.
