@@ -24,7 +24,9 @@ def test_plan_task_returns_steps_and_context():
         "required_tools": ["sql_executor"],
         "context": {},
     }
-    response = client.post("/tasks/plan", json=payload)
+    # API 키 헤더 추가
+    headers = {"X-API-Key": "super-secret-api-key"}
+    response = client.post("/tasks/plan", json=payload, headers=headers)
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "planned"
@@ -44,7 +46,9 @@ def test_plan_task_returns_steps_and_context():
 
 def test_get_task_status_returns_not_found_for_unknown_job():
     client = TestClient(app)
-    response = client.get("/tasks/unknown-id")
+    # API 키 헤더 추가
+    headers = {"X-API-Key": "super-secret-api-key"}
+    response = client.get("/tasks/unknown-id", headers=headers)
     assert response.status_code == 404
 
 
@@ -56,10 +60,12 @@ def test_get_task_status_returns_payload(monkeypatch):
         "required_tools": ["sql_executor"],
         "context": {},
     }
-    plan_response = client.post("/tasks/plan", json=payload)
+    # API 키 헤더 추가
+    headers = {"X-API-Key": "super-secret-api-key"}
+    plan_response = client.post("/tasks/plan", json=payload, headers=headers)
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
-    status_response = client.get(f"/tasks/{job_id}")
+    status_response = client.get(f"/tasks/{job_id}", headers=headers)
     assert status_response.status_code in (status.HTTP_200_OK, status.HTTP_202_ACCEPTED)
     body = status_response.json()
     assert body["job_id"] == job_id
@@ -74,12 +80,14 @@ def test_get_task_status_reports_failure():
         "required_tools": ["sql_executor"],
         "context": {},
     }
-    plan_response = client.post("/tasks/plan", json=payload)
+    # API 키 헤더 추가
+    headers = {"X-API-Key": "super-secret-api-key"}
+    plan_response = client.post("/tasks/plan", json=payload, headers=headers)
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
     celery_module.celery_app.backend.store_result(job_id, RuntimeError("forced failure"), "FAILURE")
 
-    status_response = client.get(f"/tasks/{job_id}")
+    status_response = client.get(f"/tasks/{job_id}", headers=headers)
     assert status_response.status_code == status.HTTP_200_OK
     body = status_response.json()
     assert body["state"] == "FAILURE"
@@ -96,12 +104,14 @@ def test_get_task_status_reports_retry_state():
         "required_tools": ["sql_executor"],
         "context": {},
     }
-    plan_response = client.post("/tasks/plan", json=payload)
+    # API 키 헤더 추가
+    headers = {"X-API-Key": "super-secret-api-key"}
+    plan_response = client.post("/tasks/plan", json=payload, headers=headers)
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
     celery_module.celery_app.backend.store_result(job_id, RuntimeError("retry later"), "RETRY")
 
-    status_response = client.get(f"/tasks/{job_id}")
+    status_response = client.get(f"/tasks/{job_id}", headers=headers)
     assert status_response.status_code == status.HTTP_202_ACCEPTED
     body = status_response.json()
     assert body["state"] == "RETRY"

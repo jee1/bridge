@@ -5,7 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from ..semantic.models import TaskRequest, TaskResponse, TaskStatusResponse
+from ..semantic.models import TaskRequest, TaskResponse, TaskStatusResponse, TaskStatus
+from .auth import AuthenticatedUser
 from .queries import get_task_status
 from .tasks import execute_pipeline
 
@@ -14,7 +15,7 @@ DISPATCHED_JOB_IDS: set[str] = set()
 
 
 @router.post("/plan", response_model=TaskResponse)
-async def plan_task(request: TaskRequest) -> TaskResponse:
+async def plan_task(request: TaskRequest, user: AuthenticatedUser) -> TaskResponse:
     """사용자 요청을 간단한 작업 그래프로 계획하고 비동기 실행을 큐에 넣는다."""
 
     async_steps = [
@@ -31,7 +32,7 @@ async def plan_task(request: TaskRequest) -> TaskResponse:
 
     return TaskResponse(
         intent=request.intent,
-        status="planned",
+        status=TaskStatus.PLANNED,
         steps=[
             *async_steps,
             {"name": "queue_execution", "details": details},
@@ -40,7 +41,7 @@ async def plan_task(request: TaskRequest) -> TaskResponse:
 
 
 @router.get("/{job_id}", response_model=TaskStatusResponse)
-async def get_task(job_id: str, response: Response) -> TaskStatusResponse:
+async def get_task(job_id: str, response: Response, user: AuthenticatedUser) -> TaskStatusResponse:
     """작업 상태와 결과를 조회한다."""
 
     task_status = get_task_status(job_id)

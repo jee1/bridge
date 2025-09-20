@@ -8,7 +8,7 @@ from typing import Dict, Set
 @dataclass(frozen=True)
 class Role:
     name: str
-    permissions: Set[str]
+    permissions: frozenset[str]
 
 
 class AccessController:
