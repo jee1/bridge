@@ -128,6 +128,21 @@ docker-compose -f docker-compose.dev.yml run --rm test
 
 서버가 실행되면 [http://localhost:8000](http://localhost:8000)에서 API에 접근할 수 있습니다.
 
+### 7. CLI로 작업 제출 및 상태 폴링 (선택사항)
+
+```bash
+python cli.py "지역별 이탈 위험 분석" --sources mock --tools sql_executor
+```
+
+출력 예:
+
+```
+작업이 제출되었습니다. job_id=2f7c18af-...
+[STATUS 202] {"job_id": "2f7c18af-...", "state": "PENDING", "ready": false, ...}
+[STATUS 200] {"job_id": "2f7c18af-...", "state": "SUCCESS", "ready": true, "successful": true, ...}
+[SUCCESS] 작업이 완료되었습니다.
+```
+
 ## 📚 API 사용 예시
 
 ### 작업 계획 요청
@@ -150,6 +165,32 @@ curl -X POST "http://localhost:8000/tasks/plan" \
 ```bash
 # 작업 ID로 상태 조회
 curl "http://localhost:8000/tasks/{job_id}"
+
+# 202 응답 예시 (큐에 대기 중)
+{
+  "job_id": "2f7c18af-...",
+  "state": "PENDING",
+  "ready": false,
+  "successful": false
+}
+
+# 200 응답 예시 (성공)
+{
+  "job_id": "2f7c18af-...",
+  "state": "SUCCESS",
+  "ready": true,
+  "successful": true,
+  "result": {...}
+}
+
+# 200 응답 예시 (실패)
+{
+  "job_id": "2f7c18af-...",
+  "state": "FAILURE",
+  "ready": true,
+  "successful": false,
+  "error": "에러 메시지"
+}
 ```
 
 ### CLI 사용법
