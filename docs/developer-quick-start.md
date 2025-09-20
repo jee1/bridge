@@ -10,12 +10,15 @@ Bridge는 **Model Context Protocol(MCP)** 기반의 데이터 통합 및 AI 오�
 src/bridge/
 ├── connectors/          # 데이터 소스 커넥터
 │   ├── base.py         # BaseConnector 추상 클래스
-│   └── postgres.py     # PostgreSQL 커넥터
+│   ├── postgres.py     # PostgreSQL 커넥터
+│   ├── mock.py         # Mock 커넥터 (테스트용)
+│   └── registry.py     # 커넥터 레지스트리
 ├── orchestrator/        # FastAPI 오케스트레이터
 │   ├── app.py          # FastAPI 애플리케이션
 │   ├── routers.py      # API 라우터
 │   ├── tasks.py        # Celery 태스크
-│   └── celery_app.py   # Celery 설정
+│   ├── celery_app.py   # Celery 설정
+│   └── queries.py      # Celery 결과 조회 유틸리티
 ├── semantic/           # 시맨틱 모델
 │   └── models.py       # Pydantic 데이터 모델
 ├── workspaces/         # 워크스페이스 관리

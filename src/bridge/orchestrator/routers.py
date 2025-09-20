@@ -3,13 +3,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response, status
 
 from ..semantic.models import TaskRequest, TaskResponse, TaskStatusResponse
 from .queries import get_task_status
 from .tasks import execute_pipeline
 
 router = APIRouter()
+DISPATCHED_JOB_IDS: set[str] = set()
 
 
 @router.post("/plan", response_model=TaskResponse)
@@ -22,6 +23,7 @@ async def plan_task(request: TaskRequest) -> TaskResponse:
     ]
 
     async_result = execute_pipeline.delay(request.model_dump())
+    DISPATCHED_JOB_IDS.add(async_result.id)
 
     details: dict[str, Any] = {"job_id": async_result.id}
     if async_result.successful():
@@ -38,13 +40,15 @@ async def plan_task(request: TaskRequest) -> TaskResponse:
 
 
 @router.get("/{job_id}", response_model=TaskStatusResponse)
-async def get_task(job_id: str) -> TaskStatusResponse:
+async def get_task(job_id: str, response: Response) -> TaskStatusResponse:
     """작업 상태와 결과를 조회한다."""
 
-    status = get_task_status(job_id)
-    if status["state"] == "PENDING":
-        # Celery는 존재하지 않는 ID도 PENDING으로 반환 -> ready=False로 구분
-        # ready=False인 상태를 Not Found로 처리한다.
-        raise HTTPException(status_code=404, detail="Job not found or not started yet")
+    task_status = get_task_status(job_id)
+    if task_status["state"] == "PENDING" and not task_status["ready"]:
+        if job_id not in DISPATCHED_JOB_IDS:
+            raise HTTPException(status_code=404, detail="Job not found or not started yet")
+        response.status_code = status.HTTP_202_ACCEPTED
+    else:
+        DISPATCHED_JOB_IDS.discard(job_id)
 
-    return TaskStatusResponse(**status)
+    return TaskStatusResponse(**task_status)

@@ -3,6 +3,7 @@
 ## Project Structure & Module Organization
 - `/docs/`에는 제품 기획, MCP 사양, 온보딩 자료를 보관합니다. 새 문서는 파일명에 하이픈을 사용하고, 영문 슬러그를 유지하세요.
 - 애플리케이션 코드는 `/src/bridge/` 아래 도메인별 하위 폴더(`connectors/`, `orchestrator/`, `workflows/`)로 분리합니다.
+- `src/bridge/orchestrator/queries.py`는 Celery `AsyncResult`를 조회해 `/tasks/{job_id}` 응답에 사용할 메타데이터를 제공합니다.
 - 공용 스키마와 데이터 계약은 `/schema/`(JSON/YAML)에서 관리하고, 예제 데이터는 `/assets/samples/`에 둡니다.
 - 테스트 코드는 소스 구조를 반영해 `/tests/<module>/`에 배치하고, 픽스처는 `/tests/fixtures/`에서 재사용합니다.
 
@@ -13,6 +14,7 @@
 - `make dev` : 로컬 개발 서버와 샌드박스 에이전트를 함께 기동합니다.
 - `make worker` : Celery 워커를 실행합니다. 실제 비동기 처리를 확인할 때 Redis 브로커와 함께 사용하세요.
 - Docker 환경이 필요할 때는 `make docker-build`, `make docker-up`, `make docker-down`, `make docker-test`를 활용해 컨테이너 기반 개발/테스트를 진행합니다.
+- 작업 상태를 확인하려면 `/tasks/{job_id}` API를 호출하고, 202 응답은 큐에 남아 있는 상태임을 의미합니다.
 
 ## Coding Style & Naming Conventions
 - Python 코드는 PEP 8을 준수하며, Black(라인 길이 100)과 isort를 사용합니다.
@@ -26,6 +28,7 @@
 - 데이터베이스 통합 테스트는 테스트 전용 스키마나 Docker 컨테이너를 활용하고, 테스트 종료 후 정리를 보장하세요.
 - Redis 통합 테스트(`tests/test_celery_integration.py`)는 `BRIDGE_TEST_REDIS_URL`이 설정된 환경에서 실행되며, 사전에 `docker-compose -f docker-compose.redis.yml up -d`와 `make worker`를 수행해야 합니다.
 - Docker 기반 통합 테스트는 `make docker-up`으로 서비스를 올린 뒤 `make docker-test`를 실행하고, 종료 시 `make docker-down`으로 정리합니다.
+- `tests/test_orchestrator.py`는 `/tasks/plan` 및 `/tasks/{job_id}`의 성공, 실패, 재시도 흐름을 검증하므로 수정 시 결과 상태와 HTTP 코드(200/202/404)를 반드시 확인하세요.
 
 ## Commit & Pull Request Guidelines
 - 커밋 메시지는 `type(scope): summary` 패턴을 사용합니다. 예) `feat(connectors): add mysql profiling step`.

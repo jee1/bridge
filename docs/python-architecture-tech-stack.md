@@ -23,6 +23,7 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 - `src/bridge/orchestrator/`는 FastAPI + Celery 조합으로 비동기 워크플로를 구동합니다.
 - `celery_app.py`에서 브로커/백엔드를 환경 변수(`BRIDGE_CELERY_BROKER_URL`, `BRIDGE_CELERY_RESULT_BACKEND`)로 설정하고, 기본값은 메모리 전송을 사용해 로컬에서도 워커 없이 실행됩니다.
 - LangChain/OpenAI SDK를 이용해 MCP 컨텍스트를 생성하며, 프롬프트 템플릿은 `/assets/prompts/`에 저장합니다.
+- `/tasks/plan` 엔드포인트는 작업을 큐에 넣고, `/tasks/{job_id}` 엔드포인트는 Celery `AsyncResult`를 통해 상태/결과/에러 정보를 조회합니다.
 
 ### 워크스페이스 & 거버넌스
 - RBAC, 감사 로그, 세션 이력을 `src/bridge/workspaces/`와 `src/bridge/audit/` 모듈에서 처리합니다.

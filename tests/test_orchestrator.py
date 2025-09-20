@@ -1,5 +1,6 @@
 import importlib
 
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from bridge.connectors import connector_registry
@@ -59,11 +60,53 @@ def test_get_task_status_returns_payload(monkeypatch):
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
     status_response = client.get(f"/tasks/{job_id}")
-    assert status_response.status_code in (200, 404)
-    if status_response.status_code == 200:
-        body = status_response.json()
-        assert body["job_id"] == job_id
-        assert body["state"] in {"SUCCESS", "STARTED", "RETRY", "FAILURE", "PENDING"}
+    assert status_response.status_code in (status.HTTP_200_OK, status.HTTP_202_ACCEPTED)
+    body = status_response.json()
+    assert body["job_id"] == job_id
+    assert body["state"] in {"SUCCESS", "STARTED", "RETRY", "FAILURE", "PENDING"}
+
+
+def test_get_task_status_reports_failure():
+    client = TestClient(app)
+    payload = {
+        "intent": "describe churn",
+        "sources": ["mock"],
+        "required_tools": ["sql_executor"],
+        "context": {},
+    }
+    plan_response = client.post("/tasks/plan", json=payload)
+    job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
+
+    celery_module.celery_app.backend.store_result(job_id, RuntimeError("forced failure"), "FAILURE")
+
+    status_response = client.get(f"/tasks/{job_id}")
+    assert status_response.status_code == status.HTTP_200_OK
+    body = status_response.json()
+    assert body["state"] == "FAILURE"
+    assert body["error"].startswith("forced failure")
+    assert body["ready"] is True
+    assert body["successful"] is False
+
+
+def test_get_task_status_reports_retry_state():
+    client = TestClient(app)
+    payload = {
+        "intent": "describe churn",
+        "sources": ["mock"],
+        "required_tools": ["sql_executor"],
+        "context": {},
+    }
+    plan_response = client.post("/tasks/plan", json=payload)
+    job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
+
+    celery_module.celery_app.backend.store_result(job_id, RuntimeError("retry later"), "RETRY")
+
+    status_response = client.get(f"/tasks/{job_id}")
+    assert status_response.status_code == status.HTTP_202_ACCEPTED
+    body = status_response.json()
+    assert body["state"] == "RETRY"
+    assert body["ready"] is False
+    assert body["successful"] is False
 
 
 def test_celery_is_eager_by_default(monkeypatch):
