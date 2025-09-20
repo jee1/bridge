@@ -65,6 +65,8 @@ python cli.py "데이터 분석" --base-url http://staging.example.com:8000
 python cli.py "분석 작업" --poll-interval 5.0
 ```
 
+상태 출력은 HTTP 코드와 함께 제공됩니다. `202`는 작업이 큐에 남아 있음을 의미하며, `200`은 완료(성공/실패)를 뜻합니다. 실패 시 `error` 필드를 확인하고 재시도하거나 로그를 확인하세요.
+
 ### 6. Docker Compose 개발 환경 (선택사항)
 ```bash
 # Redis와 함께 전체 개발 환경 실행
