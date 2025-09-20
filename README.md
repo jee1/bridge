@@ -58,7 +58,9 @@ graph TB
 src/bridge/
 ├── connectors/          # 데이터 소스 커넥터
 │   ├── base.py         # BaseConnector 추상 클래스
-│   └── postgres.py     # PostgreSQL 커넥터
+│   ├── postgres.py     # PostgreSQL 커넥터
+│   ├── mock.py         # Mock 커넥터 (테스트용)
+│   └── registry.py     # 커넥터 레지스트리
 ├── orchestrator/        # FastAPI 오케스트레이터
 │   ├── app.py          # FastAPI 애플리케이션
 │   ├── routers.py      # API 라우터
@@ -103,6 +105,13 @@ make test -- --cov
 ```bash
 # FastAPI 개발 서버 실행
 make dev
+```
+
+### 5. Celery 워커 실행 (선택사항)
+
+```bash
+# 백그라운드 작업 처리를 위한 Celery 워커 실행
+make worker
 ```
 
 서버가 실행되면 [http://localhost:8000](http://localhost:8000)에서 API에 접근할 수 있습니다.

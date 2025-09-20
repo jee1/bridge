@@ -11,6 +11,7 @@
 - `make fmt` : 포매터와 린터를 실행해 코드 스타일을 맞춥니다.
 - `make test` : 전체 단위 및 통합 테스트를 실행합니다. 실패 시 리포트를 첨부하세요.
 - `make dev` : 로컬 개발 서버와 샌드박스 에이전트를 함께 기동합니다.
+- `make worker` : Celery 워커를 실행합니다. 실제 비동기 처리를 확인할 때 Redis 브로커와 함께 사용하세요.
 
 ## Coding Style & Naming Conventions
 - Python 코드는 PEP 8을 준수하며, Black(라인 길이 100)과 isort를 사용합니다.
@@ -22,6 +23,7 @@
 - pytest를 기본 프레임워크로 사용하고, 파일명은 `test_<feature>.py`로 지정합니다.
 - 새 기능은 최소 80% 라인 커버리지를 유지해야 하며, 측정은 `make test -- --cov`로 확인합니다.
 - 데이터베이스 통합 테스트는 테스트 전용 스키마나 Docker 컨테이너를 활용하고, 테스트 종료 후 정리를 보장하세요.
+- Redis 통합 테스트(`tests/test_celery_integration.py`)는 `BRIDGE_TEST_REDIS_URL`이 설정된 환경에서 실행되며, 사전에 `docker-compose -f docker-compose.redis.yml up -d`와 `make worker`를 수행해야 합니다.
 
 ## Commit & Pull Request Guidelines
 - 커밋 메시지는 `type(scope): summary` 패턴을 사용합니다. 예) `feat(connectors): add mysql profiling step`.
