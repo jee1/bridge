@@ -1,0 +1,75 @@
+---
+alwaysApply: true
+description: Bridge 프로젝트 구조 및 아키텍처 가이드라인
+---
+
+# Bridge 프로젝트 구조 가이드라인
+
+## 프로젝트 개요
+Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 기반으로 통합하여, Model Context Protocol(MCP)에 맞춘 컨텍스트 패키징과 도구 실행을 자동화하는 시스템입니다.
+
+## 아키텍처 요약
+- **프런트 채널**: 챗봇, API, 워크플로 엔진이 공통 게이트웨이(`api-gateway`)를 통해 진입
+- **오케스트레이션 레이어**: FastAPI 기반 `bridge-orchestrator` 서비스가 사용자 의도를 해석하고 Task Graph를 구성
+- **데이터 액세스 레이어**: 커넥터 파이프라인이 각 데이터베이스에 맞춘 SQL/NoSQL 어댑터와 캐시 전략을 제공
+- **시맨틱 & 거버넌스 레이어**: pydantic 모델로 정의된 데이터 계약과 RBAC 정책이 적용
+- **실행 런타임**: SQL 실행기, Spark/Databricks 잡 트리거, Python UDF 샌드박스, 벡터 검색 엔진을 툴킷 형태로 묶어 MCP가 호출
+
+## 디렉토리 구조
+- `/docs/` - 제품 기획, MCP 사양, 온보딩 자료 보관
+- `/src/bridge/` - 애플리케이션 코드 (도메인별 하위 폴더)
+  - `connectors/` - 데이터베이스 커넥터 (SQLAlchemy, asyncpg, pymongo, elasticsearch-py)
+  - `orchestrator/` - FastAPI + Celery 기반 AI 오케스트레이터 서비스
+  - `semantic/` - pydantic 모델로 정의된 엔터티, 지표, 민감도 태그
+  - `workspaces/` - RBAC, 감사 로그, 세션 이력 관리
+  - `audit/` - 구조화된 JSON 감사 로그 처리
+- `/schema/` - 공용 스키마와 데이터 계약 (JSON/YAML)
+- `/assets/` - 예제 데이터 및 프롬프트 템플릿
+  - `samples/` - 예제 데이터
+  - `prompts/` - LangChain/OpenAI SDK용 프롬프트 템플릿
+- `/tests/` - 테스트 코드 (소스 구조 반영)
+  - `/tests/fixtures/` - 재사용 가능한 픽스처
+- `/logs/audit/` - 구조화된 JSON 감사 로그 저장
+
+## 핵심 아키텍처 컴포넌트
+
+### Model Context Protocol (MCP)
+- AI 모델이 필요로 하는 컨텍스트를 구축, 검증, 전달하는 명세
+- 메타데이터, 쿼리 플랜, 샘플 레코드, 가이던스를 묶어 전달
+- 실행 훅과 피드백 채널 포함
+
+### 데이터 커넥터
+- 스키마 탐색 및 프로파일링 지원
+- 정책 기반 자격 증명 저장 및 로테이션
+- 필터와 집계를 푸시다운하여 데이터 이그레스 최소화
+
+### AI 오케스트레이터
+- 사용자 의도를 구조화된 작업으로 변환
+- 최적의 실행 플랜 선정
+- 중간 결과를 병합하고 MCP 컨텍스트로 재패키징
+
+## 파일 명명 규칙
+- 문서 파일: 하이픈 사용, 영문 슬러그 유지
+- 커넥터 클래스: `DatabaseConnector`, `ElasticsearchConnector` 등 명시적 이름
+- 환경 변수: `BRIDGE_<DOMAIN>_<PURPOSE>` 패턴
+
+## 데이터 플로우 요약
+1. 사용자가 챗/HTTP를 통해 분석 요청을 전송
+2. API 게이트웨이가 요청을 `bridge-orchestrator`로 전달하고 인증/정책 검사 수행
+3. 오케스트레이터가 시맨틱 카탈로그를 조회해 관련 엔터티와 규칙을 선정
+4. MCP 컨텍스트 패키지를 생성하고 필요한 커넥터/툴 실행을 스케줄링
+5. 커넥터가 원본 데이터베이스에 접근해 쿼리 또는 작업을 수행하고, 결과를 캐시/버전 관리
+6. 후처리 서비스가 품질 검사를 거친 뒤 응답을 요약해 사용자 채널로 반환
+
+## 주요 기술 스택
+- **언어 & 런타임**: Python 3.11, Poetry 또는 uv 개발 툴체인
+- **웹/API**: FastAPI, pydantic v2, Uvicorn, Celery/Redis(비동기 작업 큐)
+- **데이터 액세스**: SQLAlchemy 2.x, asyncpg, pymongo, elasticsearch-py, databricks-sql-connector
+- **AI & ML**: LangChain, OpenAI SDK, sentence-transformers(유사도 분석), pandas/Polars(데이터 처리)
+- **인프라 & 배포**: Docker, Docker Compose(로컬), Helm/Kubernetes(프로덕션), GitHub Actions CI
+- **관측성**: OpenTelemetry, Prometheus, Grafana, Sentry(에러 추적)
+
+## 참조 파일
+- [AGENTS.md](mdc:AGENTS.md) - 저장소 가이드라인
+- [docs/bridge-model-context-protocol.md](mdc:docs/bridge-model-context-protocol.md) - MCP 사양
+- [docs/python-architecture-tech-stack.md](mdc:docs/python-architecture-tech-stack.md) - Python 아키텍처 및 기술 스택

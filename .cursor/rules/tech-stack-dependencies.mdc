@@ -1,0 +1,188 @@
+---
+globs: pyproject.toml,requirements*.txt,docker-compose*.yml,Dockerfile
+description: 기술 스택 의존성 관리 및 버전 호환성 가이드라인
+---
+
+# 기술 스택 의존성 관리 가이드라인
+
+## 의존성 관리 전략
+
+### 표준 Python 프로젝트 설정
+```toml
+# pyproject.toml
+[project]
+name = "bridge"
+version = "0.1.0"
+description = "Bridge MCP Orchestrator"
+authors = [{name = "Bridge Contributors"}]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7.0",
+    "asyncpg>=0.29.0",
+    "celery[redis]>=5.3.6",
+    "langchain>=0.1.0",
+    "openai>=1.30.0",
+    "sqlalchemy>=2.0.0",
+    "pymongo>=4.7.0",
+    "elasticsearch>=8.12.0",
+    "polars>=0.20.0",
+    "pandas>=2.2.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.27.0",
+    "black>=24.3.0",
+    "isort>=5.13.0",
+    "mypy>=1.9.0"
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
+```
+
+## 핵심 라이브러리 버전 호환성
+
+### 웹 프레임워크
+- **FastAPI**: `>=0.111.0` - 최신 기능 및 성능 개선
+- **Pydantic**: `>=2.7.0` - v2의 새로운 기능 활용
+- **Uvicorn**: `>=0.29.0` - ASGI 서버 최적화
+
+### 데이터 액세스
+- **SQLAlchemy**: `>=2.0.0` - 새로운 async 지원 및 타입 힌트
+- **AsyncPG**: `>=0.29.0` - PostgreSQL 비동기 드라이버
+- **PyMongo**: `>=4.7.0` - MongoDB 비동기 지원
+- **Elasticsearch**: `>=8.12.0` - 최신 Elasticsearch API
+
+### AI & ML
+- **LangChain**: `>=0.1.0` - AI 워크플로우 프레임워크
+- **OpenAI**: `>=1.30.0` - 최신 OpenAI API
+
+### 데이터 처리
+- **Pandas**: `>=2.2.0` - 데이터 분석 라이브러리
+- **Polars**: `>=0.20.0` - 고성능 데이터 처리
+
+### 인프라 & 배포
+- **Celery**: `>=5.3.6` - 비동기 작업 큐
+
+## Docker 의존성 관리
+
+### 멀티스테이지 Dockerfile
+```dockerfile
+# 멀티스테이지 빌드로 최적화된 이미지 생성
+FROM python:3.11-slim as builder
+
+# 의존성 설치
+WORKDIR /app
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir -e .[dev]
+
+# 프로덕션 이미지
+FROM python:3.11-slim
+
+# 런타임 의존성만 복사
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# 애플리케이션 코드 복사
+WORKDIR /app
+COPY src/ ./src/
+COPY assets/ ./assets/
+
+# 실행
+CMD ["uvicorn", "src.bridge.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Docker Compose 개발 환경
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  bridge-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - BRIDGE_DATABASE_HOST=postgres
+      - BRIDGE_REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: bridge
+      POSTGRES_USER: bridge
+      POSTGRES_PASSWORD: bridge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+
+volumes:
+  postgres_data:
+```
+
+## 버전 관리 전략
+
+### 시맨틱 버저닝
+- **MAJOR**: 호환되지 않는 API 변경
+- **MINOR**: 하위 호환성을 유지하는 기능 추가
+- **PATCH**: 하위 호환성을 유지하는 버그 수정
+
+### 의존성 업데이트 정책
+- **보안 패치**: 즉시 적용
+- **마이너 업데이트**: 월 1회 검토 및 적용
+- **메이저 업데이트**: 분기별 검토 및 계획적 적용
+
+### 호환성 테스트
+```bash
+# 의존성 업데이트 후 호환성 테스트
+pip install -e .[dev]
+make test
+make lint
+bandit -r src/
+```
+
+## 환경별 의존성 관리
+
+### 개발 환경
+- 모든 개발 도구 포함
+- 디버깅 및 프로파일링 도구
+- 테스트 프레임워크
+
+### 스테이징 환경
+- 프로덕션과 동일한 의존성
+- 추가 모니터링 도구
+- 성능 테스트 도구
+
+### 프로덕션 환경
+- 최소한의 런타임 의존성만
+- 보안 및 성능 최적화
+- 모니터링 및 로깅 도구

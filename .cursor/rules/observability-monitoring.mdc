@@ -1,0 +1,407 @@
+---
+globs: *monitoring*,*observability*,*metrics*,*logging*,*tracing*
+description: 관측성 및 모니터링 관련 규칙
+---
+
+# 관측성 및 모니터링 가이드라인
+
+## OpenTelemetry 통합
+
+### 기본 설정
+```python
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
+
+# Tracer 설정
+trace.set_tracer_provider(TracerProvider())
+tracer = trace.get_tracer(__name__)
+
+# OTLP 익스포터 설정
+otlp_exporter = OTLPSpanExporter(
+    endpoint="http://jaeger:14250",
+    insecure=True,
+)
+
+# 스팬 프로세서 설정
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+# FastAPI 자동 계측
+FastAPIInstrumentor.instrument_app(app)
+SQLAlchemyInstrumentor().instrument()
+RedisInstrumentor().instrument()
+```
+
+### 커스텀 메트릭 수집
+```python
+from opentelemetry import metrics
+from opentelemetry.exporter.prometheus import PrometheusMetricReader
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
+# 메트릭 설정
+metric_reader = PrometheusMetricReader()
+meter_provider = MeterProvider(metric_readers=[metric_reader])
+metrics.set_meter_provider(meter_provider)
+
+# 커스텀 메트릭 정의
+meter = metrics.get_meter(__name__)
+mcp_context_creation_time = meter.create_histogram(
+    name="mcp_context_creation_duration_seconds",
+    description="MCP 컨텍스트 생성 시간",
+    unit="s"
+)
+query_execution_count = meter.create_counter(
+    name="query_execution_total",
+    description="실행된 쿼리 수",
+    unit="1"
+)
+```
+
+## 로깅 전략
+
+### 구조화된 로깅
+```python
+import logging
+import json
+from datetime import datetime
+from typing import Dict, Any, Optional
+
+class StructuredLogger:
+    """구조화된 JSON 로거"""
+    
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
+        
+        # JSON 포맷터 설정
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+    
+    def log_event(
+        self,
+        level: str,
+        message: str,
+        **kwargs: Any
+    ) -> None:
+        """구조화된 이벤트 로깅"""
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "level": level,
+            "message": message,
+            "service": "bridge-orchestrator",
+            **kwargs
+        }
+        
+        self.logger.info(json.dumps(log_entry))
+    
+    def log_mcp_context_creation(
+        self,
+        query: str,
+        context_size: int,
+        execution_time: float,
+        success: bool
+    ) -> None:
+        """MCP 컨텍스트 생성 로깅"""
+        self.log_event(
+            level="INFO",
+            message="MCP context created",
+            query_hash=hash(query),
+            context_size=context_size,
+            execution_time_ms=execution_time * 1000,
+            success=success
+        )
+    
+    def log_query_execution(
+        self,
+        connector: str,
+        query: str,
+        result_count: int,
+        execution_time: float,
+        error: Optional[str] = None
+    ) -> None:
+        """쿼리 실행 로깅"""
+        self.log_event(
+            level="ERROR" if error else "INFO",
+            message="Query executed",
+            connector=connector,
+            query_hash=hash(query),
+            result_count=result_count,
+            execution_time_ms=execution_time * 1000,
+            error=error
+        )
+```
+
+### 감사 로그
+```python
+import os
+from pathlib import Path
+
+class AuditLogger:
+    """감사 로그 전용 로거"""
+    
+    def __init__(self):
+        self.audit_dir = Path("/logs/audit")
+        self.audit_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 감사 로그 파일 설정
+        self.audit_file = self.audit_dir / f"audit_{datetime.now().strftime('%Y%m%d')}.json"
+        
+        self.logger = logging.getLogger("audit")
+        self.logger.setLevel(logging.INFO)
+        
+        # 파일 핸들러 설정
+        file_handler = logging.FileHandler(self.audit_file)
+        file_handler.setFormatter(logging.Formatter('%(message)s'))
+        self.logger.addHandler(file_handler)
+    
+    def log_data_access(
+        self,
+        user_id: str,
+        resource: str,
+        action: str,
+        query: str,
+        result_count: int,
+        ip_address: str
+    ) -> None:
+        """데이터 접근 감사 로그"""
+        audit_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event_type": "data_access",
+            "user_id": user_id,
+            "resource": resource,
+            "action": action,
+            "query_hash": hash(query),
+            "result_count": result_count,
+            "ip_address": ip_address,
+            "session_id": trace.get_current_span().get_span_context().trace_id
+        }
+        
+        self.logger.info(json.dumps(audit_entry))
+```
+
+## Prometheus 메트릭
+
+### 커스텀 메트릭 정의
+```python
+from prometheus_client import Counter, Histogram, Gauge, start_http_server
+
+# MCP 관련 메트릭
+mcp_context_created_total = Counter(
+    'mcp_context_created_total',
+    '생성된 MCP 컨텍스트 수',
+    ['connector_type', 'status']
+)
+
+mcp_context_creation_duration = Histogram(
+    'mcp_context_creation_duration_seconds',
+    'MCP 컨텍스트 생성 시간',
+    ['connector_type'],
+    buckets=[0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+)
+
+active_connections = Gauge(
+    'active_database_connections',
+    '활성 데이터베이스 연결 수',
+    ['connector_type']
+)
+
+# 쿼리 실행 메트릭
+query_execution_total = Counter(
+    'query_execution_total',
+    '실행된 쿼리 수',
+    ['connector_type', 'status']
+)
+
+query_execution_duration = Histogram(
+    'query_execution_duration_seconds',
+    '쿼리 실행 시간',
+    ['connector_type'],
+    buckets=[0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 30.0]
+)
+```
+
+### 메트릭 수집 및 노출
+```python
+from prometheus_client import start_http_server
+from fastapi import FastAPI
+
+app = FastAPI()
+
+# Prometheus 메트릭 서버 시작
+start_http_server(8001)
+
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    """HTTP 요청 메트릭 수집"""
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    duration = time.time() - start_time
+    query_execution_duration.labels(
+        connector_type="api"
+    ).observe(duration)
+    
+    return response
+```
+
+## Grafana 대시보드
+
+### MCP 성능 대시보드
+```json
+{
+  "dashboard": {
+    "title": "Bridge MCP Performance",
+    "panels": [
+      {
+        "title": "MCP Context Creation Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mcp_context_created_total[5m])",
+            "legendFormat": "{{connector_type}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "title": "MCP Context Creation Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(mcp_context_creation_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          }
+        ]
+      },
+      {
+        "title": "Active Database Connections",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "sum(active_database_connections)"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Sentry 에러 추적
+
+### Sentry 설정
+```python
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
+# Sentry 초기화
+sentry_sdk.init(
+    dsn="https://your-sentry-dsn@sentry.io/project-id",
+    integrations=[
+        FastApiIntegration(auto_enabling_instrumentations=True),
+        SqlalchemyIntegration(),
+        RedisIntegration(),
+    ],
+    traces_sample_rate=0.1,
+    environment="production"
+)
+
+# 커스텀 에러 추적
+@sentry_sdk.trace
+def process_mcp_workflow(workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    """MCP 워크플로 처리 (Sentry 추적)"""
+    try:
+        # 워크플로 처리 로직
+        pass
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise
+```
+
+## 알림 및 알림 규칙
+
+### Prometheus 알림 규칙
+```yaml
+# alert_rules.yml
+groups:
+  - name: bridge_alerts
+    rules:
+      - alert: HighMCPContextCreationTime
+        expr: histogram_quantile(0.95, rate(mcp_context_creation_duration_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MCP context creation is slow"
+          description: "95th percentile of MCP context creation time is {{ $value }}s"
+      
+      - alert: DatabaseConnectionFailure
+        expr: up{job="bridge-database"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection failed"
+          description: "Database {{ $labels.instance }} is down"
+      
+      - alert: HighErrorRate
+        expr: rate(query_execution_total{status="error"}[5m]) / rate(query_execution_total[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High query error rate"
+          description: "Query error rate is {{ $value | humanizePercentage }}"
+```
+
+## 성능 모니터링
+
+### APM (Application Performance Monitoring)
+```python
+from opentelemetry.instrumentation.auto_instrumentation import auto_instrument
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
+# 자동 계측 활성화
+auto_instrument()
+
+# 커스텀 스팬 생성
+@tracer.start_as_current_span("mcp_context_generation")
+def generate_mcp_context(query: str, available_tools: List[Tool]) -> Dict[str, Any]:
+    """MCP 컨텍스트 생성 (추적)"""
+    with tracer.start_as_current_span("semantic_catalog_query"):
+        # 시맨틱 카탈로그 조회
+        pass
+    
+    with tracer.start_as_current_span("context_package_assembly"):
+        # 컨텍스트 패키지 조립
+        pass
+    
+    return context_package
+```
+
+### 리소스 모니터링
+```python
+import psutil
+from prometheus_client import Gauge
+
+# 시스템 리소스 메트릭
+cpu_usage = Gauge('system_cpu_usage_percent', 'CPU 사용률')
+memory_usage = Gauge('system_memory_usage_bytes', '메모리 사용량')
+disk_usage = Gauge('system_disk_usage_percent', '디스크 사용률')
+
+def update_system_metrics():
+    """시스템 메트릭 업데이트"""
+    cpu_usage.set(psutil.cpu_percent())
+    memory_usage.set(psutil.virtual_memory().used)
+    disk_usage.set(psutil.disk_usage('/').percent)
+```

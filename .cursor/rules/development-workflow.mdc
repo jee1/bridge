@@ -1,0 +1,199 @@
+---
+globs: *.md,Makefile,*.yml,*.yaml,*.json
+description: 개발 워크플로우 및 도구 관련 규칙
+---
+
+# 개발 워크플로우 가이드라인
+
+## 개발 환경 설정
+
+### 초기 설정
+```bash
+# 표준 Python 프로젝트 의존성 설치
+make install
+
+# 개발 서버 실행
+make dev
+
+# Docker Compose로 로컬 개발 환경 구성
+docker-compose up -d
+```
+
+### 코드 품질 관리
+```bash
+# 코드 포매팅 및 린터 실행
+make fmt
+
+# 타입 체크 (mypy)
+mypy src/
+
+# 보안 검사 (bandit)
+bandit -r src/
+
+# 전체 테스트 실행
+make test
+
+# 커버리지 포함 테스트
+make test -- --cov
+
+# 통합 테스트 (Docker Compose 사용)
+docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+```
+
+## Git 워크플로우
+
+### 커밋 메시지 규칙
+- **형식**: `type(scope): summary`
+- **예시**: `feat(connectors): add mysql profiling step`
+- **타입**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+
+### 브랜치 전략
+- **main**: 프로덕션 준비 코드
+- **develop**: 개발 통합 브랜치
+- **feature/**: 새로운 기능 개발
+- **hotfix/**: 긴급 버그 수정
+
+### Pull Request 가이드라인
+- **제목**: 변경사항을 명확히 설명
+- **설명 포함**:
+  - 목적 및 배경
+  - 주요 변경점
+  - 테스트 결과
+  - 영향 받는 데이터 소스
+- **이슈 연결**: `Closes #123` 형식으로 관련 이슈 연결
+- **스크린샷**: UI나 문서 변경 시 미리보기 첨부
+
+## 문서화
+
+### 문서 구조
+- **제품 기획**: `/docs/` 디렉토리에 보관
+- **MCP 사양**: Model Context Protocol 관련 명세
+- **온보딩 자료**: 사용자 가이드 및 튜토리얼
+- **API 문서**: 자동 생성되는 API 문서
+
+### 문서 작성 규칙
+- **파일명**: 하이픈 사용, 영문 슬러그 유지
+- **형식**: Markdown 사용
+- **언어**: 기술 문서는 한국어, 코드 예시는 영어
+- **구조**: 목차, 개요, 상세 설명, 예시 순서
+
+### 예시 문서 구조
+```markdown
+# 기능명
+
+## 개요
+기능의 목적과 주요 특징
+
+## 사용법
+### 기본 사용법
+```python
+# 코드 예시
+```
+
+### 고급 사용법
+상세한 사용 방법
+
+## API 참조
+### 클래스명
+클래스 설명
+
+#### 메서드명
+메서드 설명
+
+## 예시
+실제 사용 예시
+```
+
+## 빌드 및 배포
+
+### 빌드 프로세스
+- **의존성 관리**: 표준 Python 프로젝트 `pyproject.toml` 기반 관리
+- **환경 분리**: 개발, 스테이징, 프로덕션 환경 분리
+- **설정 관리**: 환경별 설정 파일 분리
+- **Docker 이미지**: 멀티스테이지 빌드로 최적화된 이미지 생성
+
+### 배포 전략
+- **로컬 개발**: Docker Compose를 활용한 로컬 환경 구성
+- **프로덕션**: Helm/Kubernetes를 통한 컨테이너 오케스트레이션
+- **무중단 배포**: Blue-Green 또는 Rolling 배포
+- **롤백 계획**: 배포 실패 시 롤백 절차
+- **이미지 태그**: `bridge-api:<git-sha>` 패턴 사용
+
+### CI/CD 파이프라인
+```yaml
+# GitHub Actions 예시
+name: CI/CD Pipeline
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: make install
+      - name: Run tests
+        run: make test
+      - name: Type check
+        run: make lint
+      - name: Security check
+        run: bandit -r src/
+  
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Docker image
+        run: docker build -t bridge-api:${{ github.sha }} .
+```
+
+## 모니터링 및 로깅
+
+### 로깅 전략
+- **구조화된 로그**: JSON 형태의 구조화된 로그
+- **로그 레벨**: DEBUG, INFO, WARNING, ERROR, CRITICAL
+- **감사 로그**: `/logs/audit/`에 별도 저장
+- **OpenTelemetry**: 분산 추적 및 메트릭 수집
+
+### 모니터링 지표
+- **성능 지표**: 응답 시간, 처리량, 에러율
+- **비즈니스 지표**: 사용자 활동, 데이터 처리량
+- **시스템 지표**: CPU, 메모리, 디스크 사용률
+- **AI 지표**: MCP 컨텍스트 생성 시간, 쿼리 실행 성공률
+
+### 관측성 도구
+- **Prometheus**: 메트릭 수집 및 저장
+- **Grafana**: 대시보드 및 시각화
+- **Sentry**: 에러 추적 및 알림
+- **OpenTelemetry**: 분산 추적 및 APM
+
+## 코드 리뷰
+
+### 리뷰 체크리스트
+- [ ] 코드 스타일 준수 (PEP 8, Black, isort)
+- [ ] 타입 힌트 포함
+- [ ] 테스트 코드 작성
+- [ ] 문서화 업데이트
+- [ ] 보안 검토
+- [ ] 성능 영향 분석
+
+### 리뷰 가이드라인
+- **건설적 피드백**: 개선 방향 제시
+- **코드 품질**: 가독성, 유지보수성, 확장성
+- [ ] 보안 취약점 검토
+- [ ] 테스트 커버리지 확인
+
+## 문제 해결
+
+### 디버깅 가이드
+- **로그 분석**: 구조화된 로그를 통한 문제 진단
+- **프로파일링**: 성능 병목 지점 식별
+- **트레이싱**: 분산 시스템에서의 요청 추적
+
+### 성능 최적화
+- **쿼리 최적화**: 데이터베이스 쿼리 성능 개선
+- **캐싱 전략**: 적절한 캐싱 레이어 구현
+- **리소스 관리**: 메모리 및 CPU 사용량 최적화

@@ -1,0 +1,167 @@
+---
+globs: *.py
+description: Python 코딩 스타일 및 컨벤션
+---
+
+# Python 코딩 스타일 가이드라인
+
+## 기본 스타일 규칙
+- **PEP 8 준수**: Python 공식 스타일 가이드라인을 따릅니다
+- **Black 포매터**: 라인 길이 100자로 설정하여 사용
+- **isort**: import 문 정렬 및 그룹화
+- **타입 힌트**: 모든 함수와 클래스에 타입 힌트 필수
+- **Python 3.11**: 최신 Python 기능 활용 (Union types, match statements 등)
+
+## 코드 포매팅
+```bash
+# 코드 포매팅 실행
+make fmt
+```
+
+## 네이밍 컨벤션
+
+### 클래스명
+- 커넥터 클래스: `DatabaseConnector`, `ElasticsearchConnector` 등 명시적 이름
+- PascalCase 사용
+
+### 함수 및 변수명
+- snake_case 사용
+- 의미를 명확히 전달하는 이름 사용
+
+### 환경 변수
+- `BRIDGE_<DOMAIN>_<PURPOSE>` 패턴
+- 예: `BRIDGE_DATABASE_HOST`, `BRIDGE_ELASTICSEARCH_API_KEY`
+
+## 모듈 간 계약
+- **Pydantic 모델**: 데이터 계약을 명시적으로 정의
+- **타입 힌트**: 함수 시그니처에 모든 매개변수와 반환값 타입 명시
+- **Docstring**: 모든 공개 함수와 클래스에 문서화 문자열 포함
+
+## 주요 라이브러리 사용 패턴
+
+### FastAPI + Pydantic v2
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Union
+
+class ConnectorConfig(BaseModel):
+    """커넥터 설정 모델"""
+    name: str = Field(..., description="커넥터 이름")
+    connection_string: str = Field(..., description="연결 문자열")
+    credentials: Dict[str, str] = Field(default_factory=dict)
+    scope: Optional[Dict[str, Union[str, int]]] = None
+
+app = FastAPI(title="Bridge API", version="1.0.0")
+
+@app.post("/connectors/")
+async def create_connector(config: ConnectorConfig) -> Dict[str, str]:
+    """커넥터 생성 엔드포인트"""
+    # 구현 내용
+    return {"status": "created", "connector_id": config.name}
+```
+
+### SQLAlchemy 2.x + AsyncPG
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Integer, DateTime
+from datetime import datetime
+
+class Base(DeclarativeBase):
+    pass
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class DatabaseConnector:
+    """비동기 데이터베이스 커넥터"""
+    
+    def __init__(self, connection_string: str) -> None:
+        self.engine = create_async_engine(connection_string)
+    
+    async def connect(self) -> AsyncSession:
+        """비동기 데이터베이스 연결"""
+        async with AsyncSession(self.engine) as session:
+            return session
+```
+
+### LangChain + OpenAI SDK
+```python
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from typing import Dict, Any
+
+class MCPOrchestrator:
+    """MCP 오케스트레이터"""
+    
+    def __init__(self, openai_api_key: str) -> None:
+        self.llm = OpenAI(openai_api_key=openai_api_key)
+        self.prompt_template = PromptTemplate(
+            input_variables=["context", "query"],
+            template="Context: {context}\nQuery: {query}\nResponse:"
+        )
+        self.chain = LLMChain(llm=self.llm, prompt=self.prompt_template)
+    
+    async def process_query(self, context: Dict[str, Any], query: str) -> str:
+        """쿼리 처리"""
+        return await self.chain.arun(context=context, query=query)
+```
+
+## 개발 툴체인
+
+### 표준 Python 프로젝트 설정
+```toml
+# pyproject.toml
+[project]
+name = "bridge"
+version = "0.1.0"
+description = "Bridge MCP Orchestrator"
+authors = [{name = "Bridge Contributors"}]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7.0",
+    "asyncpg>=0.29.0",
+    "celery[redis]>=5.3.6",
+    "langchain>=0.1.0",
+    "openai>=1.30.0",
+    "sqlalchemy>=2.0.0",
+    "pymongo>=4.7.0",
+    "elasticsearch>=8.12.0",
+    "polars>=0.20.0",
+    "pandas>=2.2.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.27.0",
+    "black>=24.3.0",
+    "isort>=5.13.0",
+    "mypy>=1.9.0"
+]
+```
+
+### 환경 변수 관리
+```python
+# 환경 변수 패턴: BRIDGE_<DOMAIN>_<PURPOSE>
+BRIDGE_DATABASE_HOST=localhost
+BRIDGE_DATABASE_PORT=5432
+BRIDGE_ELASTICSEARCH_API_KEY=your_key_here
+BRIDGE_OPENAI_API_KEY=your_openai_key
+```
+
+## Import 정렬 규칙
+1. 표준 라이브러리
+2. 서드파티 라이브러리
+3. 로컬 애플리케이션/라이브러리
+
+각 그룹 사이에 빈 줄로 구분합니다.

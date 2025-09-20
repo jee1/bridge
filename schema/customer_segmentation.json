@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CustomerSegmentationContract",
+  "type": "object",
+  "properties": {
+    "segment_id": {
+      "type": "string",
+      "description": "세그먼트 고유 ID"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "세그먼트 정의에 사용되는 피처 목록"
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential"],
+      "default": "internal"
+    }
+  },
+  "required": ["segment_id", "features"]
+}

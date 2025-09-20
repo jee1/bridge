@@ -1,0 +1,162 @@
+---
+globs: *mcp*,*connector*,*orchestrator*,*workflow*
+description: MCP 아키텍처 및 데이터 커넥터 관련 규칙
+---
+
+# MCP 아키텍처 가이드라인
+
+## Model Context Protocol (MCP) 핵심 개념
+
+### 컨텍스트 패키지
+- 메타데이터, 쿼리 플랜, 샘플 레코드, 가이던스를 묶어 전달
+- AI 세션 중 외부 도구 호출 지점 결정하는 실행 훅 포함
+- 사용자 피드백을 수집하여 향후 세션에서 힌트로 재사용
+
+### 데이터 커넥터 설계 원칙
+- **스키마 탐색 및 프로파일링**: 데이터 타입, 기본 키, 갱신 주기 파악
+- **정책 기반 자격 증명**: 저장 및 로테이션 관리
+- **푸시다운 최적화**: 필터와 집계를 데이터 소스로 푸시하여 이그레스 최소화
+- **선택적 캐싱**: 원본이 임의 탐색을 허용하지 않을 때 스냅샷 제공
+
+## 커넥터 구현 패턴
+
+### 기본 커넥터 인터페이스
+```python
+from abc import ABC, abstractmethod
+from typing import Dict, List, Any, Optional
+from pydantic import BaseModel
+
+class ConnectorConfig(BaseModel):
+    """커넥터 설정 모델"""
+    name: str
+    connection_string: str
+    credentials: Dict[str, str]
+    scope: Optional[Dict[str, Any]] = None
+
+class BaseConnector(ABC):
+    """커넥터 기본 클래스"""
+    
+    @abstractmethod
+    def connect(self) -> bool:
+        """데이터 소스에 연결"""
+        pass
+    
+    @abstractmethod
+    def get_schema(self) -> Dict[str, Any]:
+        """스키마 정보 반환"""
+        pass
+    
+    @abstractmethod
+    def execute_query(self, query: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """쿼리 실행"""
+        pass
+```
+
+### 지원 데이터 소스
+- **SQL 데이터베이스**: MySQL, PostgreSQL
+- **NoSQL 데이터베이스**: MongoDB
+- **분석 엔진**: Databricks, Elasticsearch
+- **확장 예정**: Snowflake, BigQuery, Azure Data Explorer
+
+## AI 오케스트레이터 설계 (FastAPI + Celery)
+
+### 주요 책임
+1. **의도 변환**: 사용자 의도를 구조화된 작업으로 변환
+2. **실행 플랜 선정**: SQL 직접 실행, Databricks 잡, Elasticsearch 쿼리, Python UDF 등
+3. **결과 병합**: 중간 결과를 병합하고 MCP 컨텍스트로 재패키징
+4. **성능 추적**: 비용, 지연, 품질 지표를 추적하여 지속적 개선
+
+### 비동기 워크플로 처리
+```python
+from celery import Celery
+from fastapi import FastAPI, BackgroundTasks
+from langchain.llms import OpenAI
+from typing import Dict, Any, List
+
+app = FastAPI()
+celery_app = Celery('bridge-orchestrator', broker='redis://localhost:6379')
+
+@celery_app.task
+async def process_mcp_workflow(workflow_config: Dict[str, Any]) -> Dict[str, Any]:
+    """비동기 MCP 워크플로 처리"""
+    # 1. 시맨틱 카탈로그 조회
+    # 2. MCP 컨텍스트 패키지 생성
+    # 3. 커넥터/툴 실행 스케줄링
+    # 4. 결과 병합 및 재패키징
+    pass
+
+@app.post("/workflows/execute")
+async def execute_workflow(
+    workflow_config: Dict[str, Any],
+    background_tasks: BackgroundTasks
+) -> Dict[str, str]:
+    """워크플로 실행 엔드포인트"""
+    task = process_mcp_workflow.delay(workflow_config)
+    return {"task_id": task.id, "status": "started"}
+```
+
+### LangChain/OpenAI SDK 통합
+```python
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from langchain.agents import Agent, Tool
+from openai import AsyncOpenAI
+
+class MCPOrchestrator:
+    """MCP 오케스트레이터"""
+    
+    def __init__(self, openai_api_key: str) -> None:
+        self.client = AsyncOpenAI(api_key=openai_api_key)
+        self.prompt_template = PromptTemplate(
+            input_variables=["context", "query", "tools"],
+            template="""
+            Context: {context}
+            Available Tools: {tools}
+            Query: {query}
+            
+            Generate MCP context package and execution plan.
+            """
+        )
+    
+    async def generate_mcp_context(self, query: str, available_tools: List[Tool]) -> Dict[str, Any]:
+        """MCP 컨텍스트 패키지 생성"""
+        # 프롬프트 템플릿을 활용한 컨텍스트 생성
+        pass
+```
+
+### 워크플로 관리
+- **프로젝트 단위**: 데이터 소스, 저장 분석, 접근 정책을 그룹화
+- **템플릿 시스템**: 버전 관리되고 파라미터화된 AI 작업 템플릿
+- **실행 샌드박스**: 명시적 도구 허용 목록으로 안전한 실행 환경 제공
+- **비동기 처리**: Celery/Redis를 통한 장시간 실행 작업 처리
+
+## AI 작업 템플릿
+
+### 기술 통계
+- **목표**: 지표 요약, 추세, 이상 징후 파악
+- **입력**: 테이블 또는 논리 엔터티
+- **출력**: 내러티브 요약과 핵심 지표
+
+### 세그먼트 추출
+- **목표**: 규칙 또는 유사도로 코호트 식별
+- **입력**: 모수 엔터티, 필터 또는 특성
+- **출력**: 세그먼트 정의와 내보내기 핸들
+
+### 유사도 비교
+- **목표**: 엔터티 또는 행동 간 유사도 측정
+- **입력**: 피처 벡터, 유사도 지표
+- **출력**: 상위 순위 목록과 설명 토큰
+
+## 보안 및 거버넌스
+
+### 접근 제어
+- 프로젝트, 커넥터, 데이터셋에 대한 역할 기반 접근 제어
+- 민감 컬럼 보호를 위한 쿼리 리라이팅 및 데이터 마스킹
+
+### 감사 및 추적
+- 컴플라이언스를 위한 계보 추적과 변경 불가능한 세션 로그
+- 결과 공유 전 행 데이터 제한, 통계적 신뢰도 검사
+
+### 자격 증명 관리
+- 민감 자격 증명은 `.env` 대신 시크릿 매니저에 저장
+- 로컬 테스트는 `.env.example`을 복제하여 사용

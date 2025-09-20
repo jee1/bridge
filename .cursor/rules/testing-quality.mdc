@@ -1,0 +1,134 @@
+---
+globs: test_*.py,*_test.py,tests/**/*.py
+description: 테스트 및 품질 관리 가이드라인
+---
+
+# 테스트 및 품질 관리 가이드라인
+
+## 테스트 프레임워크
+- **pytest**: 기본 테스트 프레임워크 사용
+- **파일 명명**: `test_<feature>.py` 패턴 준수
+- **커버리지**: 최소 80% 라인 커버리지 유지
+
+## 테스트 실행 명령
+```bash
+# 전체 테스트 실행
+make test
+
+# 커버리지 포함 테스트
+make test -- --cov
+
+# 특정 모듈 테스트
+pytest tests/connectors/test_mysql_connector.py
+```
+
+## 테스트 구조
+
+### 디렉토리 구조
+- `/tests/<module>/` - 소스 구조를 반영한 테스트 배치
+- `/tests/fixtures/` - 재사용 가능한 픽스처
+- 각 모듈별로 독립적인 테스트 디렉토리 구성
+
+### 테스트 파일 예시
+```python
+import pytest
+from unittest.mock import Mock, patch
+from bridge.connectors.mysql_connector import MySQLConnector
+from bridge.schemas.connector_config import ConnectorConfig
+
+class TestMySQLConnector:
+    """MySQL 커넥터 테스트 클래스"""
+    
+    @pytest.fixture
+    def connector_config(self):
+        """테스트용 커넥터 설정"""
+        return ConnectorConfig(
+            name="test_mysql",
+            connection_string="mysql://localhost:3306/test",
+            credentials={"username": "test", "password": "test"}
+        )
+    
+    @pytest.fixture
+    def mysql_connector(self, connector_config):
+        """MySQL 커넥터 인스턴스"""
+        return MySQLConnector(connector_config)
+    
+    def test_connect_success(self, mysql_connector):
+        """연결 성공 테스트"""
+        with patch('mysql.connector.connect') as mock_connect:
+            mock_connect.return_value = Mock()
+            result = mysql_connector.connect()
+            assert result is True
+    
+    def test_connect_failure(self, mysql_connector):
+        """연결 실패 테스트"""
+        with patch('mysql.connector.connect') as mock_connect:
+            mock_connect.side_effect = Exception("Connection failed")
+            result = mysql_connector.connect()
+            assert result is False
+```
+
+## 통합 테스트
+
+### 데이터베이스 통합 테스트
+- 테스트 전용 스키마나 Docker 컨테이너 활용
+- 테스트 종료 후 정리 작업 보장
+- 실제 데이터베이스 연결 없이도 테스트 가능한 구조
+
+### MCP 통합 테스트
+- 컨텍스트 패키지 생성 및 검증 테스트
+- AI 오케스트레이터 워크플로 테스트
+- 다양한 데이터 소스 간 상호작용 테스트
+
+## 품질 관리
+
+### 코드 품질 도구
+```bash
+# 코드 포매팅 및 린팅
+make fmt
+
+# 타입 체크
+mypy src/
+
+# 보안 검사
+bandit -r src/
+```
+
+### 성능 테스트
+- 대용량 데이터 처리 성능 측정
+- 메모리 사용량 모니터링
+- 쿼리 실행 시간 벤치마크
+
+### 테스트 데이터 관리
+- `/assets/samples/` 디렉토리에 예제 데이터 보관
+- 테스트용 데이터는 실제 프로덕션 데이터와 분리
+- 민감한 정보는 마스킹 처리
+
+## 테스트 작성 가이드라인
+
+### 단위 테스트
+- 각 함수와 메서드에 대한 독립적인 테스트
+- Mock 객체를 활용한 의존성 격리
+- 경계값과 예외 상황 테스트 포함
+
+### 통합 테스트
+- 여러 컴포넌트 간 상호작용 테스트
+- 실제 데이터베이스 연결을 통한 테스트
+- 엔드투엔드 워크플로 테스트
+
+### 테스트 명명 규칙
+- `test_<기능>_<상황>_<예상결과>` 패턴
+- 예: `test_connect_with_valid_credentials_should_succeed`
+- 한국어 주석으로 테스트 의도 명확히 설명
+
+## 지속적 통합 (CI)
+
+### 자동화된 테스트 실행
+- 코드 커밋 시 자동 테스트 실행
+- 테스트 실패 시 빌드 중단
+- 커버리지 리포트 자동 생성
+
+### 테스트 리포트
+- 테스트 실행 결과 상세 리포트
+- 실패한 테스트의 스택 트레이스
+- 커버리지 미달 영역 하이라이트
