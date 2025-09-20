@@ -9,6 +9,7 @@ import cli
 
 @mock.patch("cli.requests.post")
 @mock.patch("cli.requests.get")
+@mock.patch("sys.argv", ["cli", "test intent"])
 def test_cli_success_flow(mock_get, mock_post, capsys):
     mock_post.return_value = mock.Mock(status_code=200)
     mock_post.return_value.json.return_value = {
@@ -40,6 +41,7 @@ def test_cli_success_flow(mock_get, mock_post, capsys):
 
 
 @mock.patch("cli.requests.post")
+@mock.patch("sys.argv", ["cli", "test intent"])
 def test_cli_submit_failure(mock_post, capsys):
     mock_post.side_effect = RuntimeError("boom")
 

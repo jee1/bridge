@@ -1,0 +1,21 @@
+{"timestamp": "2025-09-20T09:25:50.162211+00:00", "actor": "user123", "action": "data_access", "metadata": {"table": "customers", "query": "SELECT * FROM customers"}}
+{"timestamp": "2025-09-20T09:25:50.249945+00:00", "actor": "사용자123", "action": "데이터_접근", "metadata": {"테이블": "고객정보", "쿼리": "SELECT * FROM 고객정보"}}
+{"timestamp": "2025-09-20T09:25:50.258270+00:00", "actor": "system", "action": "startup", "metadata": {}}
+{"timestamp": "2025-09-20T09:25:50.267390+00:00", "actor": "admin", "action": "query_execution", "metadata": {"query": "SELECT * FROM customers WHERE id = ?", "parameters": [123], "execution_time": 0.5, "rows_affected": 1, "nested": {"level1": {"level2": "value"}}, "list_data": [1, 2, 3, "test"]}}
+{"timestamp": "2025-09-20T09:25:50.277101+00:00", "actor": "user", "action": "error", "metadata": {"message": "test error"}}
+{"timestamp": "2025-09-20T09:25:50.287042+00:00", "actor": "user123", "action": "test", "metadata": {}}
+{"timestamp": "2025-09-20T09:25:50.297924+00:00", "actor": "user123", "action": "special_chars_test", "metadata": {"query": "SELECT * FROM 테이블 WHERE 컬럼 = '값'", "unicode": "한글 테스트 🚀", "newline": "line1\nline2", "tab": "col1\tcol2"}}
+{"timestamp": "2025-09-20T09:26:42.231702+00:00", "actor": "user123", "action": "data_access", "metadata": {"table": "customers"}}
+{"timestamp": "2025-09-20T09:26:42.394098+00:00", "actor": "사용자123", "action": "데이터_접근", "metadata": {"테이블": "고객정보"}}
+{"timestamp": "2025-09-20T09:26:42.455946+00:00", "actor": "system", "action": "startup", "metadata": {}}
+{"timestamp": "2025-09-20T09:26:42.520994+00:00", "actor": "admin", "action": "query_execution", "metadata": {"query": "SELECT * FROM customers WHERE id = ?", "parameters": [123], "execution_time": 0.5, "nested": {"level1": {"level2": "value"}}}}
+{"timestamp": "2025-09-20T09:26:42.580285+00:00", "actor": "user", "action": "error", "metadata": {"message": "test error"}}
+{"timestamp": "2025-09-20T09:26:42.587440+00:00", "actor": "user123", "action": "test", "metadata": {}}
+{"timestamp": "2025-09-20T09:26:42.595601+00:00", "actor": "user123", "action": "special_chars_test", "metadata": {"query": "SELECT * FROM 테이블 WHERE 컬럼 = '값'", "unicode": "한글 테스트 🚀", "newline": "line1\nline2"}}
+{"timestamp": "2025-09-20T11:28:05.252915+00:00", "actor": "user123", "action": "data_access", "metadata": {"table": "customers"}}
+{"timestamp": "2025-09-20T11:28:06.086705+00:00", "actor": "사용자123", "action": "데이터_접근", "metadata": {"테이블": "고객정보"}}
+{"timestamp": "2025-09-20T11:28:06.160604+00:00", "actor": "system", "action": "startup", "metadata": {}}
+{"timestamp": "2025-09-20T11:28:06.222379+00:00", "actor": "admin", "action": "query_execution", "metadata": {"query": "SELECT * FROM customers WHERE id = ?", "parameters": [123], "execution_time": 0.5, "nested": {"level1": {"level2": "value"}}}}
+{"timestamp": "2025-09-20T11:28:06.282339+00:00", "actor": "user", "action": "error", "metadata": {"message": "test error"}}
+{"timestamp": "2025-09-20T11:28:06.312260+00:00", "actor": "user123", "action": "test", "metadata": {}}
+{"timestamp": "2025-09-20T11:28:06.342219+00:00", "actor": "user123", "action": "special_chars_test", "metadata": {"query": "SELECT * FROM 테이블 WHERE 컬럼 = '값'", "unicode": "한글 테스트 🚀", "newline": "line1\nline2"}}

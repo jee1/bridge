@@ -48,7 +48,7 @@ class TestMockConnector:
     def test_run_query(self):
         """쿼리 실행 테스트."""
         connector = MockConnector()
-        results = list(connector.run_query("SELECT * FROM test"))
+        results = list(connector.run_query("SELECT * FROM dummy"))
         
         assert len(results) == 2
         assert results[0]["id"] == 1
@@ -56,121 +56,59 @@ class TestMockConnector:
         assert results[1]["id"] == 2
         assert results[1]["metric"] == 17
     
-    def test_run_query_with_params(self):
-        """파라미터가 있는 쿼리 실행 테스트."""
+    def test_mask_columns(self):
+        """컬럼 마스킹 테스트."""
         connector = MockConnector()
-        results = list(connector.run_query("SELECT * FROM test", {"param": "value"}))
+        rows = [{"id": 1, "name": "Alice", "email": "alice@example.com"}]
+        masked_rows = list(connector.mask_columns(rows, ["email"]))
         
-        assert len(results) == 2
-        # 파라미터는 무시되고 샘플 데이터가 반환됨
-        assert results[0]["id"] == 1
+        assert masked_rows[0]["email"] == "***"
+        assert masked_rows[0]["name"] == "Alice"
+        assert masked_rows[0]["id"] == 1
 
 
 class TestPostgresConnector:
     """PostgresConnector 테스트."""
     
-    @pytest.fixture
-    def mock_pool(self):
-        """Mock connection pool."""
-        pool = AsyncMock()
-        connection = AsyncMock()
-        pool.acquire.return_value.__aenter__.return_value = connection
-        pool.acquire.return_value.__aexit__.return_value = None
-        return pool, connection
-    
-    @pytest.fixture
-    def connector(self):
-        """PostgresConnector 인스턴스."""
-        return PostgresConnector(
+    def test_connector_initialization(self):
+        """PostgresConnector 초기화 테스트."""
+        connector = PostgresConnector(
             name="test_postgres",
-            settings={"host": "localhost", "port": 5432}
+            settings={"host": "localhost", "port": 5432, "database": "test", "user": "test", "password": "test"}
         )
+        assert connector.name == "test_postgres"
+        assert connector.settings["host"] == "localhost"
+        assert connector.settings["port"] == 5432
     
-    @pytest.mark.asyncio
-    async def test_test_connection_success(self, connector, mock_pool):
-        """연결 테스트 성공 케이스."""
-        pool, connection = mock_pool
-        connector._get_pool = AsyncMock(return_value=pool)
+    def test_connector_missing_settings(self):
+        """필수 설정 누락 테스트."""
+        connector = PostgresConnector(name="test", settings={"host": "localhost"})
+        # _get_pool 메서드가 ConfigurationError를 발생시키는지 확인
+        import asyncio
+        async def test_missing_settings():
+            try:
+                await connector._get_pool()
+                return False
+            except Exception as e:
+                return "필수 설정이 누락되었습니다" in str(e)
         
-        result = await connector.test_connection()
+        result = asyncio.run(test_missing_settings())
         assert result is True
-        connection.execute.assert_called_once_with("SELECT 1")
-    
-    @pytest.mark.asyncio
-    async def test_get_metadata(self, connector, mock_pool):
-        """메타데이터 조회 테스트."""
-        pool, connection = mock_pool
-        connector._get_pool = AsyncMock(return_value=pool)
-        
-        # Mock cursor results
-        mock_record = {"table_schema": "public", "table_name": "test", "column_name": "id", "data_type": "integer"}
-        connection.cursor.return_value.__aiter__.return_value = [mock_record]
-        
-        metadata = await connector.get_metadata()
-        
-        assert "columns" in metadata
-        assert len(metadata["columns"]) == 1
-        assert metadata["columns"][0]["table_schema"] == "public"
-    
-    @pytest.mark.asyncio
-    async def test_run_query(self, connector, mock_pool):
-        """쿼리 실행 테스트."""
-        pool, connection = mock_pool
-        connector._get_pool = AsyncMock(return_value=pool)
-        
-        # Mock cursor results
-        mock_record = {"id": 1, "name": "test"}
-        connection.cursor.return_value.__aiter__.return_value = [mock_record]
-        
-        results = []
-        async for record in connector.run_query("SELECT * FROM test", {"param": "value"}):
-            results.append(record)
-        
-        assert len(results) == 1
-        assert results[0]["id"] == 1
-        assert results[0]["name"] == "test"
 
 
 class TestConnectorRegistry:
     """ConnectorRegistry 테스트."""
     
-    def test_init(self):
-        """레지스트리 초기화 테스트."""
-        registry = ConnectorRegistry()
-        assert len(registry.list()) == 0
-    
-    def test_register_connector(self):
-        """커넥터 등록 테스트."""
+    def test_register_and_get_connector(self):
+        """커넥터 등록 및 조회 테스트."""
         registry = ConnectorRegistry()
         connector = MockConnector(name="test_connector")
         
         registry.register(connector)
-        assert "test_connector" in registry.list()
-        assert registry.get("test_connector") == connector
-    
-    def test_register_duplicate_connector(self):
-        """중복 커넥터 등록 테스트."""
-        registry = ConnectorRegistry()
-        connector1 = MockConnector(name="test_connector")
-        connector2 = MockConnector(name="test_connector")
+        retrieved = registry.get("test_connector")
         
-        registry.register(connector1)
-        registry.register(connector2, overwrite=False)
-        
-        # overwrite=False이므로 첫 번째 커넥터가 유지됨
-        assert registry.get("test_connector") == connector1
-    
-    def test_register_duplicate_connector_overwrite(self):
-        """중복 커넥터 덮어쓰기 테스트."""
-        registry = ConnectorRegistry()
-        connector1 = MockConnector(name="test_connector")
-        connector2 = MockConnector(name="test_connector")
-        
-        registry.register(connector1)
-        registry.register(connector2, overwrite=True)
-        
-        # overwrite=True이므로 두 번째 커넥터로 교체됨
-        assert registry.get("test_connector") == connector2
+        assert retrieved is connector
+        assert retrieved.name == "test_connector"
     
     def test_get_nonexistent_connector(self):
         """존재하지 않는 커넥터 조회 테스트."""

@@ -205,16 +205,19 @@ flowchart LR
 - `--poll-interval` - 상태 조회 간격 조정
 
 #### 요청 예시
-```json
-{
-  "intent": "프리미엄 고객 세그먼트 분석",
-  "sources": ["postgres://analytics_db"],
-  "required_tools": ["sql_executor", "statistics_analyzer"],
-  "context": {
-    "time_range": "2024-01-01 to 2024-12-31",
-    "customer_tier": "premium"
-  }
-}
+```bash
+curl -X POST "http://localhost:8000/tasks/plan" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d '{
+    "intent": "프리미엄 고객 세그먼트 분석",
+    "sources": ["postgres://analytics_db"],
+    "required_tools": ["sql_executor", "statistics_analyzer"],
+    "context": {
+      "time_range": "2024-01-01 to 2024-12-31",
+      "customer_tier": "premium"
+    }
+  }'
 ```
 
 #### 응답 예시
@@ -240,7 +243,17 @@ flowchart LR
 ```
 
 #### 작업 상태 조회 응답 예시
-```json
+```bash
+# 202 응답 예시 (큐에 대기 중)
+curl -H "Authorization: Bearer YOUR_API_KEY" "http://localhost:8000/tasks/{job_id}"
+{
+  "job_id": "abc123-def456-ghi789",
+  "state": "PENDING",
+  "ready": false,
+  "successful": false
+}
+
+# 200 응답 예시 (성공)
 {
   "job_id": "abc123-def456-ghi789",
   "state": "SUCCESS",
@@ -259,7 +272,34 @@ flowchart LR
   },
   "error": null
 }
+
+# 200 응답 예시 (실패)
+{
+  "job_id": "abc123-def456-ghi789",
+  "state": "FAILURE",
+  "ready": true,
+  "successful": false,
+  "error": "에러 메시지"
+}
 ```
+
+## 보안 기능
+
+### API 인증
+- **API 키 인증**: FastAPI 의존성 주입을 통한 안전한 API 접근
+- **Authorization 헤더**: Bearer 토큰을 통한 인증
+- **권한 검사**: 각 엔드포인트별 접근 권한 확인
+
+### 데이터 보호
+- **SQL 인젝션 방지**: 파라미터 바인딩을 통한 안전한 쿼리 실행
+- **입력 검증**: Pydantic 모델을 통한 엄격한 데이터 검증
+- **데이터 마스킹**: 민감한 컬럼 자동 마스킹
+- **에러 처리**: 안전한 예외 처리 및 로깅
+
+### 감사 및 모니터링
+- **감사 로깅**: 모든 활동 추적 및 구조화된 로그 저장
+- **RBAC**: 역할 기반 접근 제어
+- **세션 추적**: 사용자 세션 및 활동 모니터링
 
 ## 개발 가이드라인
 
