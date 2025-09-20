@@ -143,6 +143,13 @@ curl -X POST "http://localhost:8000/tasks/plan" \
   }'
 ```
 
+### 작업 상태 조회
+
+```bash
+# 작업 ID로 상태 조회
+curl "http://localhost:8000/tasks/{job_id}"
+```
+
 ### 헬스 체크
 
 ```bash

@@ -28,3 +28,12 @@ class TaskResponse(BaseModel):
     intent: str
     status: str
     steps: List[TaskStep]
+
+
+class TaskStatusResponse(BaseModel):
+    job_id: str
+    state: str
+    ready: bool
+    successful: bool
+    result: Dict[str, Any] | None = None
+    error: str | None = None

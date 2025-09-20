@@ -98,6 +98,11 @@ class BaseConnector(ABC):
 - 스키마 메타데이터 자동 수집
 - 민감 데이터 마스킹 기능
 
+#### ConnectorRegistry (커넥터 관리)
+- 커넥터 인스턴스의 중앙 관리
+- 동적 커넥터 등록 및 조회
+- 커넥터별 설정 및 상태 관리
+
 ### 2. 오케스트레이터 레이어 (`/src/bridge/orchestrator/`)
 
 사용자 요청을 처리하고 작업을 조율하는 핵심 서비스입니다.
@@ -126,6 +131,7 @@ class BaseConnector(ABC):
 - `TaskRequest`: 사용자 요청 구조
 - `TaskResponse`: 작업 응답 구조
 - `TaskStep`: 작업 단계별 상세 정보
+- `TaskStatusResponse`: 작업 상태 및 결과 조회 응답
 
 ### 4. 워크스페이스 관리 (`/src/bridge/workspaces/`)
 
@@ -184,6 +190,7 @@ flowchart LR
 
 ### 작업 관리
 - `POST /tasks/plan` - 작업 계획 및 실행 요청
+- `GET /tasks/{job_id}` - 작업 상태 및 결과 조회
 
 #### 요청 예시
 ```json
@@ -217,6 +224,28 @@ flowchart LR
       "details": {"job_id": "abc123-def456-ghi789"}
     }
   ]
+}
+```
+
+#### 작업 상태 조회 응답 예시
+```json
+{
+  "job_id": "abc123-def456-ghi789",
+  "state": "SUCCESS",
+  "ready": true,
+  "successful": true,
+  "result": {
+    "status": "completed",
+    "intent": "프리미엄 고객 세그먼트 분석",
+    "collected_sources": [
+      {
+        "source": "postgres://analytics_db",
+        "metadata": {"tables": ["customers", "orders"]}
+      }
+    ],
+    "missing_sources": []
+  },
+  "error": null
 }
 ```
 
