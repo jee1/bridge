@@ -20,7 +20,8 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 - `/schema/` 디렉터리에 JSON/YAML 계약을 버전 관리하고, 변경 사항은 마이그레이션 스크립트로 반영합니다.
 
 ### AI 오케스트레이션 레이어
-- `src/bridge/orchestrator/`는 FastAPI + Celery(또는 Prefect) 조합으로 비동기 워크플로를 구동합니다.
+- `src/bridge/orchestrator/`는 FastAPI + Celery 조합으로 비동기 워크플로를 구동합니다.
+- `celery_app.py`에서 브로커/백엔드를 환경 변수(`BRIDGE_CELERY_BROKER_URL`, `BRIDGE_CELERY_RESULT_BACKEND`)로 설정하고, 기본값은 메모리 전송을 사용해 로컬에서도 워커 없이 실행됩니다.
 - LangChain/OpenAI SDK를 이용해 MCP 컨텍스트를 생성하며, 프롬프트 템플릿은 `/assets/prompts/`에 저장합니다.
 
 ### 워크스페이스 & 거버넌스
@@ -45,6 +46,7 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 
 ## 개발 및 배포 고려 사항
 - 로컬 개발은 `make install` 후 `make dev`로 API와 샌드박스 에이전트를 동시 기동합니다.
+- 비동기 태스크 실행은 `make worker`로 Celery 워커를 기동하며, 기억성 환경에서는 기본적으로 eager 모드이므로 별도 워커 없이도 동작합니다.
 - 테스트는 pytest + coverage(`make test -- --cov`)를 실행하고, 통합 테스트 시 Docker Compose로 의존 DB를 띄웁니다.
 - 환경 변수는 `BRIDGE_<DOMAIN>_<PURPOSE>` 규칙을 따르며, `.env.example`을 기반으로 설정합니다.
 - CICD 파이프라인에서 fmt → lint → test → build 순으로 검증하고, 이미지 태그는 `bridge-api:<git-sha>` 패턴을 사용합니다.
