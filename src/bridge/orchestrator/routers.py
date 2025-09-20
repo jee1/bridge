@@ -44,7 +44,7 @@ async def get_task(job_id: str, response: Response) -> TaskStatusResponse:
     """작업 상태와 결과를 조회한다."""
 
     task_status = get_task_status(job_id)
-    if task_status["state"] == "PENDING" and not task_status["ready"]:
+    if task_status["state"] in ("PENDING", "RETRY") and not task_status["ready"]:
         if job_id not in DISPATCHED_JOB_IDS:
             raise HTTPException(status_code=404, detail="Job not found or not started yet")
         response.status_code = status.HTTP_202_ACCEPTED

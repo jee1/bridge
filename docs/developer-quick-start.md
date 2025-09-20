@@ -23,8 +23,9 @@ src/bridge/
 │   └── models.py       # Pydantic 데이터 모델
 ├── workspaces/         # 워크스페이스 관리
 │   └── rbac.py         # RBAC 시스템
-└── audit/              # 감사 로깅
-    └── logger.py       # 감사 로거
+├── audit/              # 감사 로깅
+│   └── logger.py       # 감사 로거
+└── cli.py              # CLI 인터페이스
 ```
 
 ## 🛠️ 개발 환경 설정
@@ -49,7 +50,22 @@ make test
 make dev
 ```
 
-### 5. Docker Compose 개발 환경 (선택사항)
+### 5. CLI 사용법
+```bash
+# 기본 사용법
+python cli.py "고객 세그먼트 분석"
+
+# 특정 데이터 소스와 도구 지정
+python cli.py "프리미엄 고객 분석" --sources postgres://analytics_db --tools sql_executor,statistics_analyzer
+
+# 다른 서버 URL 지정
+python cli.py "데이터 분석" --base-url http://staging.example.com:8000
+
+# 폴링 간격 조정
+python cli.py "분석 작업" --poll-interval 5.0
+```
+
+### 6. Docker Compose 개발 환경 (선택사항)
 ```bash
 # Redis와 함께 전체 개발 환경 실행
 docker-compose -f docker-compose.dev.yml up -d

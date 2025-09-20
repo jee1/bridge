@@ -107,6 +107,11 @@ class BaseConnector(ABC):
 
 사용자 요청을 처리하고 작업을 조율하는 핵심 서비스입니다.
 
+#### CLI 인터페이스 (`cli.py`)
+- 명령행 인터페이스를 통한 작업 제출 및 상태 조회
+- argparse를 사용한 사용자 친화적 인터페이스
+- 실시간 작업 상태 모니터링 및 폴링
+
 #### FastAPI 애플리케이션 (`app.py`)
 - RESTful API 엔드포인트 제공
 - 헬스 체크 및 상태 모니터링
@@ -191,6 +196,13 @@ flowchart LR
 ### 작업 관리
 - `POST /tasks/plan` - 작업 계획 및 실행 요청
 - `GET /tasks/{job_id}` - 작업 상태 및 결과 조회
+
+### CLI 인터페이스
+- `python cli.py <intent>` - 작업 제출 및 상태 모니터링
+- `--sources` - 사용할 데이터 소스 지정
+- `--tools` - 필요한 도구 목록 지정
+- `--base-url` - 서버 URL 지정
+- `--poll-interval` - 상태 조회 간격 조정
 
 #### 요청 예시
 ```json

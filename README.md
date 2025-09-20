@@ -65,13 +65,15 @@ src/bridge/
 │   ├── app.py          # FastAPI 애플리케이션
 │   ├── routers.py      # API 라우터
 │   ├── tasks.py        # Celery 태스크
-│   └── celery_app.py   # Celery 설정
+│   ├── celery_app.py   # Celery 설정
+│   └── queries.py      # Celery 결과 조회 유틸리티
 ├── semantic/           # 시맨틱 모델
 │   └── models.py       # Pydantic 데이터 모델
 ├── workspaces/         # 워크스페이스 관리
 │   └── rbac.py         # RBAC 시스템
-└── audit/              # 감사 로깅
-    └── logger.py       # 감사 로거
+├── audit/              # 감사 로깅
+│   └── logger.py       # 감사 로거
+└── cli.py              # CLI 인터페이스
 ```
 
 ## 🛠️ 빠른 시작
@@ -148,6 +150,22 @@ curl -X POST "http://localhost:8000/tasks/plan" \
 ```bash
 # 작업 ID로 상태 조회
 curl "http://localhost:8000/tasks/{job_id}"
+```
+
+### CLI 사용법
+
+```bash
+# 기본 사용법
+python cli.py "고객 세그먼트 분석"
+
+# 특정 데이터 소스와 도구 지정
+python cli.py "프리미엄 고객 분석" --sources postgres://analytics_db --tools sql_executor,statistics_analyzer
+
+# 다른 서버 URL 지정
+python cli.py "데이터 분석" --base-url http://staging.example.com:8000
+
+# 폴링 간격 조정
+python cli.py "분석 작업" --poll-interval 5.0
 ```
 
 ### 헬스 체크
