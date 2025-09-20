@@ -16,7 +16,7 @@ make install
 make dev
 
 # Docker Compose로 로컬 개발 환경 구성
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
 ### 코드 품질 관리
@@ -37,7 +37,11 @@ make test
 make test -- --cov
 
 # 통합 테스트 (Docker Compose 사용)
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+docker-compose -f docker-compose.dev.yml run --rm test
+
+# Redis 통합 테스트
+export BRIDGE_TEST_REDIS_URL=redis://localhost:6379/2
+make test
 ```
 
 ## Git 워크플로우

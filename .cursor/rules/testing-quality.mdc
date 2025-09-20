@@ -75,6 +75,11 @@ class TestMySQLConnector:
 - 테스트 종료 후 정리 작업 보장
 - 실제 데이터베이스 연결 없이도 테스트 가능한 구조
 
+### Redis 통합 테스트
+- `BRIDGE_TEST_REDIS_URL` 환경 변수 설정 필요
+- Celery 워커와 Redis 브로커 간 통합 테스트
+- 비동기 작업 큐 처리 검증
+
 ### MCP 통합 테스트
 - 컨텍스트 패키지 생성 및 검증 테스트
 - AI 오케스트레이터 워크플로 테스트
@@ -103,6 +108,19 @@ bandit -r src/
 - `/assets/samples/` 디렉토리에 예제 데이터 보관
 - 테스트용 데이터는 실제 프로덕션 데이터와 분리
 - 민감한 정보는 마스킹 처리
+
+### Redis 통합 테스트 실행
+```bash
+# Redis 컨테이너 시작
+docker-compose -f docker-compose.dev.yml up -d redis
+
+# 환경 변수 설정 후 테스트 실행
+export BRIDGE_TEST_REDIS_URL=redis://localhost:6379/2
+make test
+
+# 또는 Docker Compose를 통한 테스트 실행
+docker-compose -f docker-compose.dev.yml run --rm test
+```
 
 ## 테스트 작성 가이드라인
 

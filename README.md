@@ -114,6 +114,16 @@ make dev
 make worker
 ```
 
+### 6. Docker Compose 개발 환경 (선택사항)
+
+```bash
+# Redis와 함께 전체 개발 환경 실행
+docker-compose -f docker-compose.dev.yml up -d
+
+# 테스트 실행
+docker-compose -f docker-compose.dev.yml run --rm test
+```
+
 서버가 실행되면 [http://localhost:8000](http://localhost:8000)에서 API에 접근할 수 있습니다.
 
 ## 📚 API 사용 예시
@@ -198,6 +208,13 @@ pytest tests/connectors/test_postgres_connector.py
 
 # 커버리지 리포트 생성
 make test -- --cov=src --cov-report=html
+
+# Redis 통합 테스트
+export BRIDGE_TEST_REDIS_URL=redis://localhost:6379/2
+make test
+
+# Docker Compose를 통한 테스트
+docker-compose -f docker-compose.dev.yml run --rm test
 ```
 
 ## 📖 문서

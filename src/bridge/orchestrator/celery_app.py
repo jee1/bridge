@@ -34,6 +34,7 @@ def create_celery_app(**overrides: Any) -> Celery:
         accept_content=["json"],
         task_serializer="json",
         result_serializer="json",
+        include=["bridge.orchestrator.tasks"],
     )
     app.autodiscover_tasks(["bridge.orchestrator"])
     return app

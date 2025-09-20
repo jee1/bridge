@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    command: uvicorn bridge.orchestrator.app:app --host 0.0.0.0 --port 8000
+    environment:
+      BRIDGE_CELERY_BROKER_URL: redis://redis:6379/0
+      BRIDGE_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BRIDGE_CELERY_TASK_ALWAYS_EAGER: "false"
+      BRIDGE_TEST_REDIS_URL: redis://redis:6379/2
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: celery -A bridge.orchestrator.celery_app.celery_app worker --loglevel=info
+    environment:
+      BRIDGE_CELERY_BROKER_URL: redis://redis:6379/0
+      BRIDGE_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BRIDGE_CELERY_TASK_ALWAYS_EAGER: "false"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  test:
+    build: .
+    command: pytest tests
+    environment:
+      BRIDGE_CELERY_BROKER_URL: redis://redis:6379/0
+      BRIDGE_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BRIDGE_CELERY_TASK_ALWAYS_EAGER: "false"
+      BRIDGE_TEST_REDIS_URL: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    profiles: ["test"]

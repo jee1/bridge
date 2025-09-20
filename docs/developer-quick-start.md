@@ -46,6 +46,15 @@ make test
 make dev
 ```
 
+### 5. Docker Compose 개발 환경 (선택사항)
+```bash
+# Redis와 함께 전체 개발 환경 실행
+docker-compose -f docker-compose.dev.yml up -d
+
+# 테스트 실행
+docker-compose -f docker-compose.dev.yml run --rm test
+```
+
 ## 🔧 핵심 컴포넌트
 
 ### 1. 커넥터 시스템

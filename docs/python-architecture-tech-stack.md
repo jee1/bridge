@@ -47,8 +47,9 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 ## 개발 및 배포 고려 사항
 - 로컬 개발은 `make install` 후 `make dev`로 API와 샌드박스 에이전트를 동시 기동합니다.
 - 비동기 태스크 실행은 Celery 워커를 기동하며, 로컬 환경에서는 기본적으로 eager 모드이므로 별도 워커 없이도 동작합니다.
-- Redis 브로커 연동이 필요한 경우 `docker-compose -f docker-compose.redis.yml up -d`로 Redis를 실행하고 `.env`에 브로커/백엔드 URL을 설정합니다.
-- 실제 비동기 동작을 검증하려면 `BRIDGE_CELERY_TASK_ALWAYS_EAGER=false`를 설정하고 `make worker`를 별도 터미널에서 실행한 다음 통합 테스트(`pytest tests/test_celery_integration.py`)를 수행합니다.
+- Docker 기반 개발이 필요하면 `make docker-build && make docker-up`으로 API/워커/Redis를 컨테이너로 실행하고, 종료 시 `make docker-down`을 사용합니다.
+- Redis 브로커 연동이 필요한 경우 `docker-compose -f docker-compose.redis.yml up -d` 또는 `docker-compose.dev.yml`의 Redis 서비스를 활용하고 `.env`에 브로커/백엔드 URL을 설정합니다.
+- 실제 비동기 동작을 검증하려면 `BRIDGE_CELERY_TASK_ALWAYS_EAGER=false`를 설정하고 `make worker` 혹은 Docker 워커 컨테이너를 사용한 뒤 통합 테스트(`pytest tests/test_celery_integration.py` 또는 `make docker-test`)를 수행합니다.
 - 테스트는 pytest + coverage(`make test -- --cov`)를 실행하고, 통합 테스트 시 Docker Compose로 의존 DB를 띄웁니다.
 - 환경 변수는 `BRIDGE_<DOMAIN>_<PURPOSE>` 규칙을 따르며, `.env.example`을 기반으로 설정합니다.
 - CICD 파이프라인에서 fmt → lint → test → build 순으로 검증하고, 이미지 태그는 `bridge-api:<git-sha>` 패턴을 사용합니다.
