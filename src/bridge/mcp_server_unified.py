@@ -246,6 +246,95 @@ class UnifiedBridgeMCPServer:
                 "description": "사용 가능한 데이터 커넥터 목록 조회",
                 "inputSchema": {"type": "object", "properties": {}},
             },
+            # Analytics 도구들 추가
+            {
+                "name": "statistics_analyzer",
+                "description": "데이터에 대한 기본 통계 분석 수행",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터 (UnifiedDataFrame 또는 dict)"},
+                        "columns": {"type": "array", "items": {"type": "string"}, "description": "분석할 컬럼 목록 (선택사항)"},
+                        "analysis_type": {"type": "string", "enum": ["descriptive", "distribution", "correlation", "summary"], "description": "분석 유형"},
+                    },
+                    "required": ["data", "analysis_type"],
+                },
+            },
+            {
+                "name": "data_profiler",
+                "description": "데이터 프로파일링 및 기본 정보 수집",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "프로파일링할 데이터"},
+                        "include_stats": {"type": "boolean", "description": "통계 정보 포함 여부", "default": True},
+                        "include_quality": {"type": "boolean", "description": "품질 검사 포함 여부", "default": True},
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "outlier_detector",
+                "description": "데이터에서 이상치 탐지",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "columns": {"type": "array", "items": {"type": "string"}, "description": "분석할 컬럼 목록"},
+                        "method": {"type": "string", "enum": ["iqr", "zscore"], "description": "이상치 탐지 방법", "default": "iqr"},
+                        "threshold": {"type": "number", "description": "임계값 (Z-score 방법 사용시)", "default": 3.0},
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "chart_generator",
+                "description": "데이터 시각화 차트 생성",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "시각화할 데이터"},
+                        "chart_type": {"type": "string", "enum": ["bar", "line", "scatter", "histogram", "box", "heatmap"], "description": "차트 유형"},
+                        "x_column": {"type": "string", "description": "X축 컬럼명"},
+                        "y_column": {"type": "string", "description": "Y축 컬럼명 (선택사항)"},
+                        "hue_column": {"type": "string", "description": "색상 구분 컬럼명 (산점도용)"},
+                        "title": {"type": "string", "description": "차트 제목"},
+                        "config": {"type": "object", "description": "차트 설정 (선택사항)"},
+                    },
+                    "required": ["data", "chart_type"],
+                },
+            },
+            {
+                "name": "quality_checker",
+                "description": "데이터 품질 검사 수행",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "검사할 데이터"},
+                        "check_missing": {"type": "boolean", "description": "결측값 검사 여부", "default": True},
+                        "check_outliers": {"type": "boolean", "description": "이상치 검사 여부", "default": True},
+                        "check_consistency": {"type": "boolean", "description": "일관성 검사 여부", "default": True},
+                        "outlier_method": {"type": "string", "enum": ["iqr", "zscore"], "description": "이상치 탐지 방법", "default": "iqr"},
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "report_builder",
+                "description": "종합 분석 리포트 생성",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "title": {"type": "string", "description": "리포트 제목"},
+                        "author": {"type": "string", "description": "작성자"},
+                        "include_charts": {"type": "boolean", "description": "차트 포함 여부", "default": True},
+                        "include_dashboard": {"type": "boolean", "description": "대시보드 포함 여부", "default": True},
+                        "include_quality": {"type": "boolean", "description": "품질 검사 포함 여부", "default": True},
+                    },
+                    "required": ["data"],
+                },
+            },
         ]
 
     def _get_env(self, key: str, default: str) -> str:
@@ -344,6 +433,19 @@ class UnifiedBridgeMCPServer:
                 return await self._get_schema(arguments)
             elif tool_name == "analyze_data":
                 return await self._analyze_data(arguments)
+            # Analytics 도구들
+            elif tool_name == "statistics_analyzer":
+                return await self._statistics_analyzer(arguments)
+            elif tool_name == "data_profiler":
+                return await self._data_profiler(arguments)
+            elif tool_name == "outlier_detector":
+                return await self._outlier_detector(arguments)
+            elif tool_name == "chart_generator":
+                return await self._chart_generator(arguments)
+            elif tool_name == "quality_checker":
+                return await self._quality_checker(arguments)
+            elif tool_name == "report_builder":
+                return await self._report_builder(arguments)
             else:
                 return {
                     "success": False,
@@ -530,6 +632,334 @@ class UnifiedBridgeMCPServer:
         except Exception as e:
             logger.error(f"분석 실행 실패: {e}")
             return {"success": False, "error": str(e), "intent": intent}
+
+    # Analytics 도구 핸들러들
+    async def _statistics_analyzer(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """통계 분석 도구"""
+        try:
+            from bridge.analytics.core import UnifiedDataFrame, StatisticsAnalyzer
+            
+            data = args.get("data", {})
+            columns = args.get("columns")
+            analysis_type = args.get("analysis_type", "descriptive")
+            
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+            
+            analyzer = StatisticsAnalyzer()
+            
+            if analysis_type == "descriptive":
+                result = analyzer.calculate_descriptive_stats(df, columns)
+            elif analysis_type == "distribution":
+                if not columns or len(columns) == 0:
+                    return {"success": False, "error": "분포 분석을 위해 컬럼을 지정해야 합니다"}
+                result = analyzer.calculate_distribution_stats(df, columns[0])
+            elif analysis_type == "correlation":
+                result = analyzer.calculate_correlation(df, columns)
+            elif analysis_type == "summary":
+                result = analyzer.generate_summary_report(df)
+            else:
+                return {"success": False, "error": f"지원하지 않는 분석 유형: {analysis_type}"}
+            
+            return {
+                "success": True,
+                "analysis_type": analysis_type,
+                "result": result,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns}
+            }
+            
+        except Exception as e:
+            logger.error(f"통계 분석 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _data_profiler(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터 프로파일링 도구"""
+        try:
+            from bridge.analytics.core import UnifiedDataFrame, StatisticsAnalyzer, QualityChecker
+            
+            data = args.get("data", {})
+            include_stats = args.get("include_stats", True)
+            include_quality = args.get("include_quality", True)
+            
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+            
+            profile = {
+                "basic_info": {
+                    "rows": df.num_columns,
+                    "columns": df.num_columns,
+                    "memory_usage": df.get_metadata("memory_usage"),
+                    "data_types": df.get_metadata("data_types")
+                }
+            }
+            
+            if include_stats:
+                analyzer = StatisticsAnalyzer()
+                profile["statistics"] = analyzer.generate_summary_report(df)
+            
+            if include_quality:
+                checker = QualityChecker()
+                profile["quality"] = checker.generate_quality_report(df)
+            
+            return {
+                "success": True,
+                "profile": profile,
+                "mode": self.mode
+            }
+            
+        except Exception as e:
+            logger.error(f"데이터 프로파일링 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _outlier_detector(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """이상치 탐지 도구"""
+        try:
+            from bridge.analytics.core import UnifiedDataFrame, QualityChecker
+            
+            data = args.get("data", {})
+            columns = args.get("columns", [])
+            method = args.get("method", "iqr")
+            threshold = args.get("threshold", 3.0)
+            
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+            
+            checker = QualityChecker()
+            outliers = {}
+            
+            # 컬럼이 지정되지 않은 경우 모든 숫자형 컬럼 분석
+            if not columns:
+                pandas_df = df.to_pandas()
+                numeric_columns = pandas_df.select_dtypes(include=['number']).columns.tolist()
+                columns = numeric_columns
+            
+            # QualityChecker의 detect_outliers 메서드 사용
+            outlier_results = checker.detect_outliers(df, columns, method, threshold)
+            
+            for column, outlier_stats in outlier_results.items():
+                outliers[column] = {
+                    "method": method,
+                    "outlier_count": outlier_stats.outlier_count,
+                    "outlier_ratio": outlier_stats.outlier_ratio,
+                    "outlier_indices": outlier_stats.outlier_indices[:10],  # 처음 10개만
+                    "outlier_values": outlier_stats.outlier_values[:10]    # 처음 10개만
+                }
+            
+            return {
+                "success": True,
+                "method": method,
+                "threshold": threshold,
+                "outliers": outliers,
+                "total_columns_analyzed": len(columns)
+            }
+            
+        except Exception as e:
+            logger.error(f"이상치 탐지 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _chart_generator(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """차트 생성 도구"""
+        try:
+            from bridge.analytics.core import UnifiedDataFrame, ChartGenerator, ChartConfig
+            
+            data = args.get("data", {})
+            chart_type = args.get("chart_type")
+            x_column = args.get("x_column")
+            y_column = args.get("y_column")
+            hue_column = args.get("hue_column")
+            title = args.get("title", f"{chart_type.title()} Chart")
+            config = args.get("config", {})
+            
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+            
+            generator = ChartGenerator()
+            chart_config = ChartConfig(
+                title=title,
+                **config
+            )
+            
+            if chart_type == "bar":
+                fig = generator.create_bar_chart(df, x_column, y_column, chart_config)
+            elif chart_type == "line":
+                if not x_column or not y_column:
+                    return {"success": False, "error": "선 차트를 위해 x_column과 y_column이 필요합니다"}
+                fig = generator.create_line_chart(df, x_column, y_column, chart_config)
+            elif chart_type == "scatter":
+                if not x_column or not y_column:
+                    return {"success": False, "error": "산점도를 위해 x_column과 y_column이 필요합니다"}
+                fig = generator.create_scatter_plot(df, x_column, y_column, hue_column, chart_config)
+            elif chart_type == "histogram":
+                if not x_column:
+                    return {"success": False, "error": "히스토그램을 위해 x_column이 필요합니다"}
+                fig = generator.create_histogram(df, x_column, chart_config)
+            elif chart_type == "box":
+                if not y_column:
+                    return {"success": False, "error": "박스 플롯을 위해 y_column이 필요합니다"}
+                fig = generator.create_box_plot(df, x_column, y_column, chart_config)
+            elif chart_type == "heatmap":
+                columns = args.get("columns")
+                fig = generator.create_heatmap(df, chart_config, columns)
+            else:
+                return {"success": False, "error": f"지원하지 않는 차트 유형: {chart_type}"}
+            
+            # 차트를 base64로 인코딩 (실제 구현에서는 파일로 저장하거나 스트림으로 전송)
+            import io
+            import base64
+            
+            buffer = io.BytesIO()
+            fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+            buffer.seek(0)
+            chart_data = base64.b64encode(buffer.getvalue()).decode()
+            
+            return {
+                "success": True,
+                "chart_type": chart_type,
+                "title": title,
+                "chart_data": chart_data,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns}
+            }
+            
+        except Exception as e:
+            logger.error(f"차트 생성 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _quality_checker(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터 품질 검사 도구"""
+        try:
+            from bridge.analytics.core import UnifiedDataFrame, QualityChecker
+            
+            data = args.get("data", {})
+            check_missing = args.get("check_missing", True)
+            check_outliers = args.get("check_outliers", True)
+            check_consistency = args.get("check_consistency", True)
+            outlier_method = args.get("outlier_method", "iqr")
+            
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+            
+            checker = QualityChecker()
+            
+            quality_report = checker.generate_quality_report(df, outlier_method)
+            
+            # 요청된 검사만 포함
+            result = {
+                "overall_score": quality_report.overall_score,
+                "recommendations": quality_report.recommendations,
+                "critical_issues": quality_report.critical_issues
+            }
+            
+            if check_missing:
+                result["missing_values"] = {
+                    "score": quality_report.missing_value_score,
+                    "details": "Missing value analysis completed"
+                }
+            
+            if check_outliers:
+                result["outliers"] = {
+                    "score": quality_report.outlier_score,
+                    "details": "Outlier detection completed"
+                }
+            
+            if check_consistency:
+                result["consistency"] = {
+                    "score": quality_report.consistency_score,
+                    "details": "Consistency check completed"
+                }
+            
+            return {
+                "success": True,
+                "quality_report": result,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns}
+            }
+            
+        except Exception as e:
+            logger.error(f"품질 검사 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _report_builder(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """리포트 생성 도구"""
+        try:
+            from bridge.analytics.core import UnifiedDataFrame, ReportGenerator, ReportConfig
+            
+            data = args.get("data", {})
+            title = args.get("title", "Analytics Report")
+            author = args.get("author")
+            include_charts = args.get("include_charts", True)
+            include_dashboard = args.get("include_dashboard", True)
+            include_quality = args.get("include_quality", True)
+            
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+            
+            report_config = ReportConfig(
+                title=title,
+                author=author
+            )
+            
+            generator = ReportGenerator()
+            report = generator.generate_analytics_report(df, report_config)
+            
+            # 요청된 구성 요소만 포함
+            result = {
+                "title": report["title"],
+                "author": report["author"],
+                "date": report["date"],
+                "basic_stats": report["basic_stats"],
+                "column_stats": report["column_stats"]
+            }
+            
+            if include_charts:
+                # 차트는 메타데이터만 포함 (실제 이미지 데이터는 별도 처리)
+                result["charts"] = {
+                    "available_charts": list(report["charts"].keys()),
+                    "chart_count": len(report["charts"])
+                }
+            
+            if include_dashboard:
+                result["dashboard"] = {
+                    "available": True,
+                    "title": "Analytics Dashboard"
+                }
+            
+            if include_quality:
+                # 품질 검사는 별도로 실행
+                from bridge.analytics.core import QualityChecker
+                checker = QualityChecker()
+                quality_report = checker.generate_quality_report(df)
+                result["quality"] = {
+                    "overall_score": quality_report.overall_score,
+                    "recommendations": quality_report.recommendations,
+                    "critical_issues": quality_report.critical_issues
+                }
+            
+            return {
+                "success": True,
+                "report": result,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns}
+            }
+            
+        except Exception as e:
+            logger.error(f"리포트 생성 실패: {e}")
+            return {"success": False, "error": str(e)}
 
     def _cleanup_resources(self):
         """리소스 정리"""
