@@ -15,7 +15,7 @@ fmt:
 	$(VENV_BIN) isort src tests
 
 lint:
-	$(VENV_BIN) mypy src
+	$(VENV_BIN) mypy -p bridge
 
 test:
 	$(VENV_BIN) pytest tests
@@ -95,7 +95,7 @@ dev-test:
 	@echo ""
 	$(VENV_BIN) black --check src tests
 	$(VENV_BIN) isort --check-only src tests
-	$(VENV_BIN) mypy src
+	$(VENV_BIN) mypy -p bridge
 	$(VENV_BIN) pytest tests -x --tb=short
 	@echo ""
 	@echo "✅ 개발 테스트 완료"
@@ -113,7 +113,7 @@ dev-lint:
 	@echo "🔍 린팅을 실행합니다..."
 	@echo "포함: mypy, black, isort"
 	@echo ""
-	$(VENV_BIN) mypy src
+	$(VENV_BIN) mypy -p bridge
 	$(VENV_BIN) black --check src tests
 	$(VENV_BIN) isort --check-only src tests
 	@echo ""
@@ -190,7 +190,7 @@ pr-test:
 	@echo "1. 코드 품질 검사..."
 	$(VENV_BIN) black --check src tests
 	$(VENV_BIN) isort --check-only src tests
-	$(VENV_BIN) mypy src
+	$(VENV_BIN) mypy -p bridge
 	@echo ""
 	@echo "2. 전체 테스트 실행..."
 	$(VENV_BIN) pytest tests/ -v --cov=src --cov-report=html --cov-report=term-missing

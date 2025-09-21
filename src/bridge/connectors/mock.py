@@ -22,10 +22,10 @@ class MockConnector(BaseConnector):
             {"id": 2, "metric": 17},
         ]
 
-    def test_connection(self) -> bool:  # type: ignore[override]
+    def test_connection(self) -> bool:
         return True
 
-    def get_metadata(self) -> Dict[str, Any]:  # type: ignore[override]
+    def get_metadata(self) -> Dict[str, Any]:
         return {
             "name": self.name,
             "type": "mock",
@@ -35,7 +35,7 @@ class MockConnector(BaseConnector):
             ],
         }
 
-    def run_query(  # type: ignore[override]
+    def run_query(
         self, query: str, params: Dict[str, Any] | None = None
     ) -> Iterable[Dict[str, Any]]:
         _ = query, params

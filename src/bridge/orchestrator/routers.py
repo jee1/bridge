@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from ..semantic.models import TaskRequest, TaskResponse, TaskStatus, TaskStatusResponse
+from ..semantic.models import TaskRequest, TaskResponse, TaskStatus, TaskStatusResponse, TaskStep
 from .auth import AuthenticatedUser
 from .queries import get_task_status
 from .tasks import execute_pipeline
@@ -20,8 +20,8 @@ async def plan_task(request: TaskRequest, user: AuthenticatedUser) -> TaskRespon
     """사용자 요청을 간단한 작업 그래프로 계획하고 비동기 실행을 큐에 넣는다."""
 
     async_steps = [
-        {"name": "collect_context", "details": {"sources": request.sources}},
-        {"name": "execute_tools", "details": {"tools": request.required_tools}},
+        TaskStep(name="collect_context", details={"sources": request.sources}),
+        TaskStep(name="execute_tools", details={"tools": request.required_tools}),
     ]
 
     async_result = execute_pipeline.delay(request.model_dump())
@@ -36,7 +36,7 @@ async def plan_task(request: TaskRequest, user: AuthenticatedUser) -> TaskRespon
         status=TaskStatus.PLANNED,
         steps=[
             *async_steps,
-            {"name": "queue_execution", "details": details},
+            TaskStep(name="queue_execution", details=details),
         ],
     )
 

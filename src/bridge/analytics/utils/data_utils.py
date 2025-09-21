@@ -220,7 +220,7 @@ class DataUtils:
         Returns:
             Dict[str, Any]: 비교 결과
         """
-        comparison = {
+        comparison: Dict[str, Any] = {
             "identical": False,
             "common_columns": [],
             "different_columns": [],

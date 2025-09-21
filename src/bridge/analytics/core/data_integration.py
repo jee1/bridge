@@ -6,7 +6,7 @@ Arrow Table 기반으로 다양한 데이터 소스를 통합하여 처리합니
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -106,7 +106,8 @@ class UnifiedDataFrame:
     @property
     def column_names(self) -> List[str]:
         """컬럼 이름 목록을 반환합니다."""
-        return self._table.column_names
+        column_names = cast(Sequence[str], self._table.column_names)
+        return list(column_names)
 
     def to_arrow(self) -> pa.Table:
         """Arrow Table로 변환합니다."""
@@ -118,7 +119,7 @@ class UnifiedDataFrame:
 
     def to_pylist(self) -> List[Dict[str, Any]]:
         """Python 딕셔너리 리스트로 변환합니다."""
-        return self._table.to_pylist()
+        return cast(List[Dict[str, Any]], self._table.to_pylist())
 
     def get_schema_info(self) -> Dict[str, Any]:
         """스키마 정보를 딕셔너리로 반환합니다."""

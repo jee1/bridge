@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable
+import numbers
+from typing import Any, AsyncIterator, Dict, List, cast
 from urllib.parse import urlparse
 
 from elasticsearch import AsyncElasticsearch
@@ -41,12 +42,7 @@ class ElasticsearchConnector(BaseConnector):
                 else:
                     if not configured_host:
                         raise ConfigurationError("Elasticsearch host 설정이 비어있습니다")
-                    try:
-                        port = int(configured_port)
-                    except (TypeError, ValueError):
-                        raise ConfigurationError(
-                            f"Elasticsearch port 설정이 올바르지 않습니다: {configured_port}"
-                        ) from None
+                    port = self._validate_port(configured_port)
                     scheme = "https" if use_ssl else "http"
                     host_url = f"{scheme}://{configured_host}:{port}"
 
@@ -96,20 +92,32 @@ class ElasticsearchConnector(BaseConnector):
             client = await self._get_client()
 
             # 인덱스 목록 조회
-            indices_response = await client.cat.indices(format="json")
+            indices_response_raw = await client.cat.indices(format="json")
+            indices_response = cast(List[Dict[str, Any]], indices_response_raw)
             indices = [
-                index["index"] for index in indices_response if not index["index"].startswith(".")
+                index_info["index"]
+                for index_info in indices_response
+                if isinstance(index_info, dict)
+                and isinstance(index_info.get("index"), str)
+                and not index_info["index"].startswith(".")
             ]
 
             # 각 인덱스의 매핑 정보 조회
-            mappings = {}
-            for index in indices:
+            mappings: Dict[str, Dict[str, Any]] = {}
+            for index_name in indices:
                 try:
-                    mapping_response = await client.indices.get_mapping(index=index)
-                    mappings[index] = mapping_response[index]["mappings"]
+                    mapping_response_raw = await client.indices.get_mapping(index=index_name)
+                    mapping_response = cast(Dict[str, Dict[str, Any]], mapping_response_raw)
+                    index_mapping = mapping_response.get(index_name, {})
+                    mapping_data = {}
+                    if isinstance(index_mapping, dict):
+                        mapping_entry = index_mapping.get("mappings", {})
+                        if isinstance(mapping_entry, dict):
+                            mapping_data = mapping_entry
+                    mappings[index_name] = mapping_data
                 except Exception as e:
-                    logger.warning(f"인덱스 {index}의 매핑 조회 실패: {e}")
-                    mappings[index] = {}
+                    logger.warning(f"인덱스 {index_name}의 매핑 조회 실패: {e}")
+                    mappings[index_name] = {}
 
             logger.info(f"Elasticsearch 메타데이터 조회 성공: {len(indices)}개 인덱스")
             return {"indices": indices, "mappings": mappings, "total_indices": len(indices)}
@@ -119,7 +127,7 @@ class ElasticsearchConnector(BaseConnector):
 
     async def run_query(  # type: ignore[override]
         self, query: str, params: Dict[str, Any] | None = None
-    ) -> Iterable[Dict[str, Any]]:
+    ) -> AsyncIterator[Dict[str, Any]]:
         """쿼리를 실행한다."""
         params = params or {}
         try:
@@ -140,29 +148,40 @@ class ElasticsearchConnector(BaseConnector):
                 query_dict = {"query": {"match": {"_all": query}}}
 
             # 인덱스 지정 (params에서 가져오거나 모든 인덱스 검색)
-            index = params.get("index", "_all")
+            index_param = params.get("index", "_all")
+            index = str(index_param)
 
             logger.info(
                 f"Elasticsearch 쿼리 실행: {index} - {query[:100]}{'...' if len(query) > 100 else ''}"
             )
 
+            size_param = params.get("size", 100)
+            from_param = params.get("from", 0)
+            try:
+                size = int(size_param)
+                from_value = int(from_param)
+            except (TypeError, ValueError) as exc:
+                raise QueryExecutionError("size/from 파라미터는 정수여야 합니다") from exc
+
             # 검색 실행
             response = await client.search(
                 index=index,
                 body=query_dict,
-                size=params.get("size", 100),
-                from_=params.get("from", 0),
+                size=size,
+                from_=from_value,
             )
 
             # 결과 처리
-            hits = response.get("hits", {}).get("hits", [])
+            hits_container = response.get("hits", {})
+            hits = cast(List[Dict[str, Any]], hits_container.get("hits", []))
             for hit in hits:
                 # Elasticsearch 결과를 표준화된 형태로 변환
+                source = cast(Dict[str, Any], hit.get("_source", {}))
                 result = {
                     "_id": hit["_id"],
                     "_index": hit["_index"],
                     "_score": hit.get("_score", 0),
-                    **hit["_source"],
+                    **source,
                 }
                 yield result
 
@@ -178,3 +197,14 @@ class ElasticsearchConnector(BaseConnector):
             await self._client.close()
             self._client = None
             logger.info("Elasticsearch 클라이언트 연결 종료")
+
+    def _validate_port(self, raw_port: Any) -> int:
+        """설정에서 전달된 포트를 정수로 검증한다."""
+        if isinstance(raw_port, str):
+            port_str = raw_port.strip()
+            if not port_str.isdigit():
+                raise ConfigurationError(f"Elasticsearch port 설정이 올바르지 않습니다: {raw_port}")
+            return int(port_str)
+        if isinstance(raw_port, numbers.Integral):
+            return int(raw_port)
+        raise ConfigurationError(f"Elasticsearch port 설정이 올바르지 않습니다: {raw_port}")

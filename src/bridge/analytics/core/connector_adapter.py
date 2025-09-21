@@ -37,7 +37,9 @@ class ConnectorAdapter:
         self.type_normalizer = TypeNormalizer() if normalize_types else None
         self._metadata: Dict[str, Any] = {}
 
-    async def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> UnifiedDataFrame:
+    async def execute_query(
+        self, query: str, params: Optional[Dict[str, Any]] = None
+    ) -> UnifiedDataFrame:
         """쿼리를 실행하고 UnifiedDataFrame으로 반환합니다.
 
         Args:

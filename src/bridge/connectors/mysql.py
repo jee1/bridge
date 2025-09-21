@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Iterable
+from typing import Any, AsyncIterator, Dict
 
 import aiomysql
 
@@ -108,7 +108,7 @@ class MySQLConnector(BaseConnector):
 
     async def run_query(  # type: ignore[override]
         self, query: str, params: Dict[str, Any] | None = None
-    ) -> Iterable[Dict[str, Any]]:
+    ) -> AsyncIterator[Dict[str, Any]]:
         """쿼리를 실행한다."""
         params = params or {}
         try:
