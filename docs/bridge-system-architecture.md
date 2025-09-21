@@ -42,21 +42,22 @@ graph TB
     end
     
     subgraph "MCP Server Layer"
-        E --> R[MCP Server<br/>7개 버전]
-        R --> S[Bridge MCP Robust]
-        R --> T[Bridge MCP Real]
-        R --> U[Bridge MCP Working]
+        E --> R[MCP Server<br/>1개 통합 + 7개 개별]
+        R --> S[Bridge MCP Unified<br/>환경 변수 기반 모드]
+        R --> T[Bridge MCP Robust<br/>개발/테스트용]
+        R --> U[Bridge MCP Real<br/>개발/테스트용]
+        R --> V[Bridge MCP Working<br/>개발/테스트용]
     end
     
     subgraph "Data Sources"
-        H --> V[(PostgreSQL)]
-        I --> W[(MongoDB)]
-        J --> X[(Elasticsearch)]
+        H --> Y[(PostgreSQL)]
+        I --> Z[(MongoDB)]
+        J --> AA[(Elasticsearch)]
     end
     
     subgraph "Storage"
-        M --> Y[Audit Logs<br/>JSONL]
-        K --> Z[Schema Registry]
+        M --> BB[Audit Logs<br/>JSONL]
+        K --> CC[Schema Registry]
     end
 ```
 
@@ -159,13 +160,18 @@ class BaseConnector(ABC):
 Cursor IDE와의 통합을 위한 MCP 서버들을 제공합니다.
 
 #### MCP 서버 구현체들
-- **mcp_server_robust.py**: 견고한 MCP 서버 (권장)
-- **mcp_server_real.py**: 실제 데이터베이스 연동 서버
-- **mcp_server_working.py**: 작동하는 버전
-- **mcp_server_minimal.py**: 최소 기능 버전
-- **mcp_server_simple.py**: 단순 버전
-- **mcp_server.py**: 기본 MCP 서버
-- **mcp_server_fixed.py**: 수정된 버전
+- **mcp_server_unified.py**: **통합된 MCP 서버** (환경 변수 기반 모드 지원)
+  - **개발용**: `BRIDGE_MCP_MODE=development` (모의 응답)
+  - **프로덕션용**: `BRIDGE_MCP_MODE=production` (실제 DB + 에러 복구)
+  - **실제 DB 연동**: `BRIDGE_MCP_MODE=real` (직접 JSON-RPC)
+  - **간단한 모드**: `BRIDGE_MCP_MODE=mock` (모의 응답 + 직접 JSON-RPC)
+- **mcp_server.py**: 기본 MCP 서버 (통합 서버로 리다이렉트)
+- **mcp_server_robust.py**: 견고한 MCP 서버 (개발/테스트용)
+- **mcp_server_real.py**: 실제 데이터베이스 연동 서버 (개발/테스트용)
+- **mcp_server_working.py**: 작동하는 버전 (개발/테스트용)
+- **mcp_server_minimal.py**: 최소 기능 버전 (개발/테스트용)
+- **mcp_server_simple.py**: 단순 버전 (개발/테스트용)
+- **mcp_server_fixed.py**: 수정된 버전 (개발/테스트용)
 
 #### MCP 서버 기능
 - JSON-RPC 프로토콜 지원
@@ -232,9 +238,13 @@ flowchart LR
 - `--poll-interval` - 상태 조회 간격 조정
 
 ### MCP 서버 인터페이스
-- `bridge-mcp` - 견고한 MCP 서버 실행
-- `bridge-mcp-real` - 실제 데이터베이스 연동 MCP 서버 실행
-- `python -m src.bridge.mcp_server_*` - 직접 Python 모듈로 실행
+- `make mcp-server` - Makefile을 통한 통합 서버 실행 (권장)
+- `python -m src.bridge.mcp_server_unified` - 통합 서버 직접 실행
+- `BRIDGE_MCP_MODE=* python -m src.bridge.mcp_server_unified` - 환경 변수로 모드 지정
+- `bridge-mcp` - 견고한 MCP 서버 실행 (개발/테스트용)
+- `bridge-mcp-real` - 실제 데이터베이스 연동 MCP 서버 실행 (개발/테스트용)
+- `python -m src.bridge.mcp_server_*` - 개별 서버 직접 실행 (개발/테스트용)
+- `python scripts/run_mcp_server.py` - 스크립트 파일을 통한 실행
 
 #### 요청 예시
 ```bash
@@ -435,7 +445,7 @@ async def new_endpoint(request: TaskRequest) -> TaskResponse:
 
 1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
 2. **AI 통합**: LangChain 및 OpenAI SDK 통합 완료
-3. **MCP 서버**: 7개 버전의 MCP 서버 구현 완료
+3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료
 4. **모니터링 강화**: Prometheus, Grafana 대시보드 구축
 5. **테스트 커버리지**: 단위 테스트 및 통합 테스트 확장
 6. **문서화**: API 문서 및 사용자 가이드 작성

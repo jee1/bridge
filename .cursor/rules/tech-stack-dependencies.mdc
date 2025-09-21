@@ -123,6 +123,9 @@ CMD ["uvicorn", "src.bridge.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # MCP 서버 실행 (대안)
 # CMD ["bridge-mcp"]
+
+# Makefile을 통한 MCP 서버 실행
+# make mcp-server
 ```
 
 ### Docker Compose 개발 환경
@@ -186,6 +189,7 @@ volumes:
 pip install -e .[dev]
 make test
 make lint
+make mcp-server  # MCP 서버 테스트
 bandit -r src/
 ```
 

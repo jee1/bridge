@@ -2,7 +2,7 @@
 
 ## 개요
 
-Bridge 프로젝트를 Cursor IDE에서 사용할 수 있는 MCP(Model Context Protocol) 서버로 변환하는 작업이 **완료되었습니다**. 7개의 다양한 버전의 MCP 서버가 구현되어 실행 가능한 상태입니다.
+Bridge 프로젝트를 Cursor IDE에서 사용할 수 있는 MCP(Model Context Protocol) 서버로 변환하는 작업이 **완료되었습니다**. 1개 통합 서버 + 7개 개별 서버가 구현되어 실행 가능한 상태입니다.
 
 ## 현재 상태 vs MCP 서버 요구사항
 
@@ -228,16 +228,28 @@ bridge-mcp-real = "bridge.mcp_server_real:run"
 ### 4. 실행 스크립트 (완료)
 
 ```bash
-# 스크립트를 통한 실행 (권장)
+# 통합 서버 실행 (권장)
+make mcp-server
+python -m src.bridge.mcp_server_unified
+
+# 환경 변수로 모드 지정
+BRIDGE_MCP_MODE=development python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=production python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=real python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=mock python -m src.bridge.mcp_server_unified
+
+# 개별 서버 실행 (개발/테스트용)
 bridge-mcp
 bridge-mcp-real
-
-# 직접 Python 모듈로 실행
 python -m src.bridge.mcp_server_robust
 python -m src.bridge.mcp_server_real
 python -m src.bridge.mcp_server_working
 python -m src.bridge.mcp_server_minimal
 python -m src.bridge.mcp_server_simple
+python -m src.bridge.mcp_server_fixed
+
+# 스크립트 파일을 통한 실행
+python scripts/run_mcp_server.py
 ```
 
 ## 사용 예시 (구현 완료)
@@ -281,13 +293,21 @@ connectors = await mcp.call_tool("list_connectors", {})
 
 ## 구현된 MCP 서버 버전들
 
-1. **mcp_server_robust.py** - 견고한 MCP 서버 (권장)
-2. **mcp_server_real.py** - 실제 데이터베이스 연동 서버
-3. **mcp_server_working.py** - 작동하는 버전
-4. **mcp_server_minimal.py** - 최소 기능 버전
-5. **mcp_server_simple.py** - 단순 버전
-6. **mcp_server.py** - 기본 MCP 서버
-7. **mcp_server_fixed.py** - 수정된 버전
+### 통합 서버 (권장)
+1. **mcp_server_unified.py** - **통합된 MCP 서버** (환경 변수 기반 모드 지원)
+   - **개발용**: `BRIDGE_MCP_MODE=development` (모의 응답)
+   - **프로덕션용**: `BRIDGE_MCP_MODE=production` (실제 DB + 에러 복구)
+   - **실제 DB 연동**: `BRIDGE_MCP_MODE=real` (직접 JSON-RPC)
+   - **간단한 모드**: `BRIDGE_MCP_MODE=mock` (모의 응답 + 직접 JSON-RPC)
+
+### 개별 서버들 (개발/테스트용)
+2. **mcp_server.py** - 기본 MCP 서버 (통합 서버로 리다이렉트)
+3. **mcp_server_robust.py** - 견고한 MCP 서버
+4. **mcp_server_real.py** - 실제 데이터베이스 연동 서버
+5. **mcp_server_working.py** - 작동하는 버전
+6. **mcp_server_minimal.py** - 최소 기능 버전
+7. **mcp_server_simple.py** - 단순 버전
+8. **mcp_server_fixed.py** - 수정된 버전
 
 ## 다음 단계 (개선 계획)
 

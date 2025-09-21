@@ -23,7 +23,7 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
   - `semantic/` - pydantic 모델로 정의된 엔터티, 지표, 민감도 태그
   - `workspaces/` - RBAC, 감사 로그, 세션 이력 관리
   - `audit/` - 구조화된 JSON 감사 로그 처리
-  - `mcp_server*.py` - MCP 서버 구현체들 (7개 버전)
+  - `mcp_server*.py` - MCP 서버 구현체들 (1개 통합 서버)
 - `/schema/` - 공용 스키마와 데이터 계약 (JSON/YAML)
 - `/assets/` - 예제 데이터 및 프롬프트 템플릿
   - `samples/` - 예제 데이터
@@ -49,19 +49,18 @@ Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 �
 - 최적의 실행 플랜 선정
 - 중간 결과를 병합하고 MCP 컨텍스트로 재패키징
 
-### MCP 서버 구현체들
-- `mcp_server_robust.py` - 견고한 MCP 서버 (권장)
-- `mcp_server_real.py` - 실제 데이터베이스 연동 서버
-- `mcp_server_working.py` - 작동하는 버전
-- `mcp_server_minimal.py` - 최소 기능 버전
-- `mcp_server_simple.py` - 단순 버전
-- `mcp_server.py` - 기본 MCP 서버
-- `mcp_server_fixed.py` - 수정된 버전
+### MCP 서버 구현체
+- `mcp_server_unified.py` - 통합된 MCP 서버 (환경 변수 기반 모드 지원)
+  - **개발용**: `BRIDGE_MCP_MODE=development` (모의 응답)
+  - **프로덕션용**: `BRIDGE_MCP_MODE=production` (실제 DB + 에러 복구)
+  - **실제 DB 연동**: `BRIDGE_MCP_MODE=real` (직접 JSON-RPC)
+  - **간단한 모드**: `BRIDGE_MCP_MODE=mock` (모의 응답 + 직접 JSON-RPC)
+- `mcp_server.py` - 기본 MCP 서버 (통합 서버로 리다이렉트)
 
 ## 파일 명명 규칙
 - 문서 파일: 하이픈 사용, 영문 슬러그 유지
 - 커넥터 클래스: `DatabaseConnector`, `ElasticsearchConnector` 등 명시적 이름
-- MCP 서버: `mcp_server_<variant>.py` 패턴 (robust, real, working, minimal, simple 등)
+- MCP 서버: `mcp_server_unified.py` (통합 서버, 환경 변수로 모드 제어)
 - 환경 변수: `BRIDGE_<DOMAIN>_<PURPOSE>` 패턴
 
 ## 데이터 플로우 요약

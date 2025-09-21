@@ -52,18 +52,28 @@ make dev
 
 ### 5. MCP 서버 사용법
 ```bash
-# 견고한 MCP 서버 실행 (권장)
+# 통합 서버 실행 (권장)
+make mcp-server
+python -m src.bridge.mcp_server_unified
+
+# 환경 변수로 모드 지정
+BRIDGE_MCP_MODE=development python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=production python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=real python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=mock python -m src.bridge.mcp_server_unified
+
+# 개별 서버 실행 (개발/테스트용)
 bridge-mcp
-
-# 실제 데이터베이스 연동 MCP 서버 실행
 bridge-mcp-real
-
-# 직접 Python 모듈로 실행
 python -m src.bridge.mcp_server_robust
 python -m src.bridge.mcp_server_real
 python -m src.bridge.mcp_server_working
 python -m src.bridge.mcp_server_minimal
 python -m src.bridge.mcp_server_simple
+python -m src.bridge.mcp_server_fixed
+
+# 스크립트 파일을 통한 실행
+python scripts/run_mcp_server.py
 ```
 
 ### 6. CLI 사용법
@@ -169,7 +179,7 @@ curl "http://localhost:8000/health"
 
 1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
 2. **AI 통합**: LangChain, OpenAI SDK 통합 완료
-3. **MCP 서버**: 7개 버전의 MCP 서버 구현 완료
+3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료
 4. **모니터링**: Prometheus, Grafana 대시보드
 5. **테스트**: 단위/통합 테스트 확장
 6. **문서화**: API 문서 자동 생성
