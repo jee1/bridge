@@ -1,4 +1,5 @@
 """Celery 결과 조회 유틸리티."""
+
 from __future__ import annotations
 
 from typing import Any, Dict

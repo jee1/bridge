@@ -1,14 +1,15 @@
 """Elasticsearch 커넥터 구현."""
+
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable
 import logging
-
-from elasticsearch import AsyncElasticsearch
+from typing import Any, Dict, Iterable
 from urllib.parse import urlparse
 
+from elasticsearch import AsyncElasticsearch
+
 from .base import BaseConnector
-from .exceptions import ConnectionError, QueryExecutionError, MetadataError, ConfigurationError
+from .exceptions import ConfigurationError, ConnectionError, MetadataError, QueryExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +67,11 @@ class ElasticsearchConnector(BaseConnector):
                 self._client = AsyncElasticsearch(**client_kwargs)
 
                 logger.info(f"Elasticsearch 클라이언트 생성 성공: {host_url}")
-                
+
             except Exception as e:
                 logger.error(f"Elasticsearch 클라이언트 생성 실패: {e}")
                 raise ConnectionError(f"Elasticsearch 클라이언트 생성에 실패했습니다: {e}") from e
-        
+
         return self._client
 
     async def test_connection(self) -> bool:  # type: ignore[override]
@@ -81,7 +82,9 @@ class ElasticsearchConnector(BaseConnector):
             response = await client.info()
             if not response:
                 raise ConnectionError("Elasticsearch info 조회 실패")
-            logger.info(f"Elasticsearch 연결 테스트 성공: {response.get('cluster_name', 'unknown')}")
+            logger.info(
+                f"Elasticsearch 연결 테스트 성공: {response.get('cluster_name', 'unknown')}"
+            )
             return True
         except Exception as e:
             logger.error(f"Elasticsearch 연결 실패: {e}")
@@ -91,11 +94,13 @@ class ElasticsearchConnector(BaseConnector):
         """메타데이터를 조회한다."""
         try:
             client = await self._get_client()
-            
+
             # 인덱스 목록 조회
             indices_response = await client.cat.indices(format="json")
-            indices = [index["index"] for index in indices_response if not index["index"].startswith(".")]
-            
+            indices = [
+                index["index"] for index in indices_response if not index["index"].startswith(".")
+            ]
+
             # 각 인덱스의 매핑 정보 조회
             mappings = {}
             for index in indices:
@@ -105,13 +110,9 @@ class ElasticsearchConnector(BaseConnector):
                 except Exception as e:
                     logger.warning(f"인덱스 {index}의 매핑 조회 실패: {e}")
                     mappings[index] = {}
-            
+
             logger.info(f"Elasticsearch 메타데이터 조회 성공: {len(indices)}개 인덱스")
-            return {
-                "indices": indices,
-                "mappings": mappings,
-                "total_indices": len(indices)
-            }
+            return {"indices": indices, "mappings": mappings, "total_indices": len(indices)}
         except Exception as e:
             logger.error(f"Elasticsearch 메타데이터 조회 실패: {e}")
             raise MetadataError(f"메타데이터 조회에 실패했습니다: {e}") from e
@@ -125,37 +126,34 @@ class ElasticsearchConnector(BaseConnector):
             # 쿼리 검증
             if not query.strip():
                 raise QueryExecutionError("쿼리가 비어있습니다")
-            
+
             client = await self._get_client()
-            
+
             # 쿼리 파싱 및 실행
             # Elasticsearch 쿼리는 JSON 형태로 전달되어야 함
             try:
                 import json
+
                 query_dict = json.loads(query)
             except json.JSONDecodeError:
                 # 단순 문자열 쿼리인 경우 match_all 쿼리로 변환
-                query_dict = {
-                    "query": {
-                        "match": {
-                            "_all": query
-                        }
-                    }
-                }
-            
+                query_dict = {"query": {"match": {"_all": query}}}
+
             # 인덱스 지정 (params에서 가져오거나 모든 인덱스 검색)
             index = params.get("index", "_all")
-            
-            logger.info(f"Elasticsearch 쿼리 실행: {index} - {query[:100]}{'...' if len(query) > 100 else ''}")
-            
+
+            logger.info(
+                f"Elasticsearch 쿼리 실행: {index} - {query[:100]}{'...' if len(query) > 100 else ''}"
+            )
+
             # 검색 실행
             response = await client.search(
                 index=index,
                 body=query_dict,
                 size=params.get("size", 100),
-                from_=params.get("from", 0)
+                from_=params.get("from", 0),
             )
-            
+
             # 결과 처리
             hits = response.get("hits", {}).get("hits", [])
             for hit in hits:
@@ -164,12 +162,12 @@ class ElasticsearchConnector(BaseConnector):
                     "_id": hit["_id"],
                     "_index": hit["_index"],
                     "_score": hit.get("_score", 0),
-                    **hit["_source"]
+                    **hit["_source"],
                 }
                 yield result
-            
+
             logger.info(f"Elasticsearch 쿼리 실행 완료: {len(hits)}개 결과")
-            
+
         except Exception as e:
             logger.error(f"Elasticsearch 쿼리 실행 실패: {e}")
             raise QueryExecutionError(f"쿼리 실행에 실패했습니다: {e}") from e

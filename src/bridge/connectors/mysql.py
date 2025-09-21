@@ -1,13 +1,14 @@
 """MySQL 커넥터 구현."""
+
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable
 import logging
+from typing import Any, Dict, Iterable
 
 import aiomysql
 
 from .base import BaseConnector
-from .exceptions import ConnectionError, QueryExecutionError, MetadataError, ConfigurationError
+from .exceptions import ConfigurationError, ConnectionError, MetadataError, QueryExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +21,16 @@ class MySQLConnector(BaseConnector):
         try:
             # 필수 설정 검증
             required_settings = ["host", "port", "user", "password", "db"]
-            missing_settings = [setting for setting in required_settings if setting not in self.settings]
+            missing_settings = [
+                setting for setting in required_settings if setting not in self.settings
+            ]
             if missing_settings:
                 raise ConfigurationError(f"필수 설정이 누락되었습니다: {missing_settings}")
-            
-            logger.info(f"MySQL 연결 풀 생성 중: {self.settings.get('host')}:{self.settings.get('port')}")
-            
+
+            logger.info(
+                f"MySQL 연결 풀 생성 중: {self.settings.get('host')}:{self.settings.get('port')}"
+            )
+
             # aiomysql 설정
             pool_config = {
                 "host": self.settings["host"],
@@ -39,7 +44,7 @@ class MySQLConnector(BaseConnector):
                 "charset": "utf8mb4",
                 "use_unicode": True,
             }
-            
+
             return await aiomysql.create_pool(**pool_config)
         except aiomysql.OperationalError as e:
             logger.error(f"MySQL 연결 실패: {e}")
@@ -110,13 +115,13 @@ class MySQLConnector(BaseConnector):
             # 쿼리 검증
             if not query.strip():
                 raise QueryExecutionError("쿼리가 비어있습니다")
-            
+
             # SQL 인젝션 방지를 위한 안전한 파라미터 바인딩
             # aiomysql은 %s 형태의 플레이스홀더를 사용하여 파라미터를 안전하게 바인딩
             param_values = list(params.values())
-            
+
             logger.info(f"MySQL 쿼리 실행: {query[:100]}{'...' if len(query) > 100 else ''}")
-            
+
             pool = await self._get_pool()
             async with pool.acquire() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
@@ -125,7 +130,7 @@ class MySQLConnector(BaseConnector):
                         yield dict(row)
             pool.close()
             await pool.wait_closed()
-            
+
             logger.info("MySQL 쿼리 실행 완료")
         except aiomysql.ProgrammingError as e:
             logger.error(f"MySQL 구문 오류: {e}")

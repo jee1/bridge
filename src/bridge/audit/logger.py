@@ -1,4 +1,5 @@
 """감사 로그 헬퍼."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
