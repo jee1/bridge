@@ -335,6 +335,119 @@ deploy-rollback:
 	@echo "✅ 롤백 테스트 완료"
 
 # =============================================================================
+# C1 마일스톤 테스트 (Analytics MVP)
+# =============================================================================
+
+c1-test-data:
+	@echo "📊 C1 마일스톤용 샘플 데이터를 생성합니다..."
+	@echo "포함: PostgreSQL (고객), MySQL (매출), Elasticsearch (로그)"
+	@echo ""
+	$(VENV_BIN) python scripts/init-c1-sample-data.py --scale medium
+	@echo ""
+	@echo "✅ C1 샘플 데이터 생성 완료"
+
+c1-test-data-large:
+	@echo "📊 C1 마일스톤용 대용량 샘플 데이터를 생성합니다..."
+	@echo "포함: PostgreSQL (고객), MySQL (매출), Elasticsearch (로그)"
+	@echo ""
+	$(VENV_BIN) python scripts/init-c1-sample-data.py --scale large
+	@echo ""
+	@echo "✅ C1 대용량 샘플 데이터 생성 완료"
+
+c1-test:
+	@echo "🧪 C1 마일스톤 기능 테스트를 실행합니다..."
+	@echo "포함: 데이터 통합, 통계 분석, 품질 검사, 시각화"
+	@echo ""
+	@echo "1. 데이터 통합 테스트..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; print('✅ UnifiedDataFrame 로드 성공')"
+	@echo ""
+	@echo "2. 통계 분석 테스트..."
+	$(VENV_BIN) python -c "from bridge.analytics.core.statistics import StatisticsAnalyzer; print('✅ StatisticsAnalyzer 로드 성공')"
+	@echo ""
+	@echo "3. 데이터 품질 검사 테스트..."
+	$(VENV_BIN) python -c "from bridge.analytics.core.quality import QualityChecker; print('✅ QualityChecker 로드 성공')"
+	@echo ""
+	@echo "4. 시각화 테스트..."
+	$(VENV_BIN) python -c "from bridge.analytics.core.visualization import ChartGenerator; print('✅ ChartGenerator 로드 성공')"
+	@echo ""
+	@echo "5. MCP 도구 테스트..."
+	$(VENV_BIN) python -c "from bridge.mcp_server_unified import app; print('✅ MCP 서버 로드 성공')"
+	@echo ""
+	@echo "✅ C1 기능 테스트 완료"
+
+c1-test-full:
+	@echo "🚀 C1 마일스톤 전체 테스트를 실행합니다..."
+	@echo "포함: 샘플 데이터 생성 + 기능 테스트 + 성능 벤치마크"
+	@echo ""
+	@echo "1. C1 샘플 데이터 생성..."
+	$(MAKE) c1-test-data
+	@echo ""
+	@echo "2. C1 기능 테스트..."
+	$(MAKE) c1-test
+	@echo ""
+	@echo "3. 성능 벤치마크..."
+	$(MAKE) c1-benchmark
+	@echo ""
+	@echo "✅ C1 전체 테스트 완료"
+
+c1-benchmark:
+	@echo "⚡ C1 마일스톤 성능 벤치마크를 실행합니다..."
+	@echo "포함: 대용량 데이터 처리, 메모리 사용량, 쿼리 성능"
+	@echo ""
+	@echo "1. 대용량 데이터 처리 테스트..."
+	$(VENV_BIN) python -c "import time; from bridge.analytics.core import UnifiedDataFrame; data = [{'id': i, 'value': i*2, 'category': f'cat_{i%10}'} for i in range(100000)]; start = time.time(); df = UnifiedDataFrame(data); end = time.time(); print(f'✅ 100,000행 처리: {end-start:.3f}초, {df.num_rows:,}행')"
+	@echo ""
+	@echo "2. 통계 분석 성능 테스트..."
+	$(VENV_BIN) python -c "import time; from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.statistics import StatisticsAnalyzer; data = [{'value': i*2 + (i%7)*100} for i in range(50000)]; df = UnifiedDataFrame(data); analyzer = StatisticsAnalyzer(); start = time.time(); stats = analyzer.calculate_basic_stats(df, 'value'); end = time.time(); print(f'✅ 통계 분석: {end-start:.3f}초, 평균={stats.get(\"mean\", 0):.2f}')"
+	@echo ""
+	@echo "3. 메모리 사용량 모니터링..."
+	$(VENV_BIN) python -c "import psutil; import os; process = psutil.Process(os.getpid()); print(f'✅ 메모리 사용량: {process.memory_info().rss/1024/1024:.2f}MB')" || echo "psutil 모듈 없음 - 메모리 모니터링 스킵"
+	@echo ""
+	@echo "4. 크로스 소스 조인 성능 테스트..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.cross_source_joiner import CrossSourceJoiner; df1 = UnifiedDataFrame([{'id': i, 'name': f'user_{i}'} for i in range(1000)]); df2 = UnifiedDataFrame([{'id': i, 'amount': i*100} for i in range(1000)]); joiner = CrossSourceJoiner(); start = time.time(); result = joiner.join(df1, df2, 'id', 'id'); end = time.time(); print(f'✅ 크로스 소스 조인: {end-start:.3f}초, {result.num_rows:,}행')"
+	@echo ""
+	@echo "✅ C1 성능 벤치마크 완료"
+
+c1-test-scenarios:
+	@echo "🎯 C1 마일스톤 테스트 시나리오를 실행합니다..."
+	@echo "포함: 고객 세그멘테이션, 매출 트렌드, 상관관계 분석"
+	@echo ""
+	@echo "1. 고객 세그멘테이션 분석..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.statistics import StatisticsAnalyzer; data = [{'age': 20+i%50, 'spent': (20+i%50)*1000 + (i%3)*5000, 'city': f'city_{i%10}'} for i in range(1000)]; df = UnifiedDataFrame(data); analyzer = StatisticsAnalyzer(); stats = analyzer.calculate_basic_stats(df, 'spent'); print(f'✅ 고객 세그멘테이션: 평균 구매액 {stats.get(\"mean\", 0):.0f}원')"
+	@echo ""
+	@echo "2. 매출 트렌드 분석..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.statistics import StatisticsAnalyzer; data = [{'month': i%12+1, 'sales': 1000000 + (i%12)*50000 + (i%7)*100000} for i in range(1000)]; df = UnifiedDataFrame(data); analyzer = StatisticsAnalyzer(); stats = analyzer.calculate_basic_stats(df, 'sales'); print(f'✅ 매출 트렌드: 평균 {stats.get(\"mean\", 0):.0f}원')"
+	@echo ""
+	@echo "3. 상관관계 분석..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.statistics import StatisticsAnalyzer; data = [{'price': 10000 + i*100, 'quantity': 100 - i*0.1} for i in range(1000)]; df = UnifiedDataFrame(data); analyzer = StatisticsAnalyzer(); stats = analyzer.calculate_basic_stats(df, 'price'); print(f'✅ 상관관계 분석: 가격 평균 {stats.get(\"mean\", 0):.0f}원')"
+	@echo ""
+	@echo "4. 이상치 탐지..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.quality import QualityChecker; data = [{'value': 100 + i*10 if i < 950 else 10000 + i*100} for i in range(1000)]; df = UnifiedDataFrame(data); checker = QualityChecker(); outliers = checker.detect_outliers(df, 'value'); print(f'✅ 이상치 탐지: {len(outliers)}개 발견')"
+	@echo ""
+	@echo "5. 데이터 품질 검사..."
+	$(VENV_BIN) python -c "from bridge.analytics.core import UnifiedDataFrame; from bridge.analytics.core.quality import QualityChecker; data = [{'id': i, 'name': f'item_{i}' if i%10 != 0 else None, 'value': i*100 if i%20 != 0 else None} for i in range(1000)]; df = UnifiedDataFrame(data); checker = QualityChecker(); quality = checker.check_quality(df); print(f'✅ 데이터 품질: 결측값 {quality.get(\"missing_count\", 0)}개')"
+	@echo ""
+	@echo "✅ C1 테스트 시나리오 완료"
+
+c1-help:
+	@echo "🧪 C1 마일스톤 테스트 명령어 도움말"
+	@echo ""
+	@echo "데이터 생성:"
+	@echo "  make c1-test-data        - C1용 샘플 데이터 생성 (중간 규모)"
+	@echo "  make c1-test-data-large  - C1용 대용량 샘플 데이터 생성"
+	@echo ""
+	@echo "기능 테스트:"
+	@echo "  make c1-test             - C1 기능 테스트 (모듈 로드 확인)"
+	@echo "  make c1-test-scenarios   - C1 테스트 시나리오 실행"
+	@echo "  make c1-test-full        - 전체 C1 테스트 (데이터 생성 + 테스트)"
+	@echo ""
+	@echo "성능 테스트:"
+	@echo "  make c1-benchmark        - C1 성능 벤치마크 실행"
+	@echo ""
+	@echo "도움말:"
+	@echo "  make c1-help             - 이 도움말 표시"
+
+# =============================================================================
 # 테스트 도우미 명령어
 # =============================================================================
 

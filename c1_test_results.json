@@ -1,0 +1,27 @@
+{
+  "데이터 통합": {
+    "success": false,
+    "details": {
+      "message": "데이터 통합 실패: Expected bytes, got a 'int' object",
+      "error": "Expected bytes, got a 'int' object"
+    },
+    "timestamp": "2025-09-21T23:11:13.928778"
+  },
+  "통계 분석": {
+    "success": true,
+    "details": {
+      "message": "통계 분석 완료, 연령-구매액 상관관계: 0.723",
+      "age_mean": 40.47,
+      "spent_mean": 41203.86647,
+      "correlation": 0.7234804985613434,
+      "total_customers": 1000
+    },
+    "timestamp": "2025-09-21T23:11:13.955384"
+  },
+  "데이터 품질": {
+    "success": true,
+    "details": {
+      "message": "품질 검사 완료, 이상치 59개, 중복 0개",
+      "missing_count": 94.08000000000001,
+      "outliers_count": 59,
+      "duplicates_count": 
