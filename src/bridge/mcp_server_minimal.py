@@ -2,11 +2,12 @@
 """최소한의 MCP 서버 구현"""
 
 import asyncio
-import json
 import logging
 import os
 import sys
 from typing import Any, Dict, List
+
+from bridge.utils import json as bridge_json
 
 from mcp.server import Server
 from mcp import types
@@ -18,6 +19,11 @@ from mcp.server.lowlevel.server import NotificationOptions
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +112,7 @@ class MinimalBridgeMCPServer:
                 return {
                     "content": [{
                         "type": "text",
-                        "text": json.dumps({"error": str(e)}, ensure_ascii=False, indent=2)
+                        "text": bridge_json.dumps({"error": str(e)}, indent=2)
                     }]
                 }
 
@@ -126,7 +132,7 @@ class MinimalBridgeMCPServer:
         return types.CallToolResult(
             content=[types.TextContent(
                 type="text",
-                text=json.dumps(result, ensure_ascii=False, indent=2)
+                text=bridge_json.dumps(result, indent=2)
             )]
         )
 
@@ -144,7 +150,7 @@ class MinimalBridgeMCPServer:
         return types.CallToolResult(
             content=[types.TextContent(
                 type="text",
-                text=json.dumps(result, ensure_ascii=False, indent=2)
+                text=bridge_json.dumps(result, indent=2)
             )]
         )
 
@@ -162,7 +168,7 @@ class MinimalBridgeMCPServer:
         return types.CallToolResult(
             content=[types.TextContent(
                 type="text",
-                text=json.dumps(result, ensure_ascii=False, indent=2)
+                text=bridge_json.dumps(result, indent=2)
             )]
         )
 
@@ -177,7 +183,7 @@ class MinimalBridgeMCPServer:
         return types.CallToolResult(
             content=[types.TextContent(
                 type="text",
-                text=json.dumps(result, ensure_ascii=False, indent=2)
+                text=bridge_json.dumps(result, indent=2)
             )]
         )
 

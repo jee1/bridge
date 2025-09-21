@@ -1,0 +1,282 @@
+version: "3.9"
+
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bridge_dev
+      POSTGRES_USER: bridge_user
+      POSTGRES_PASSWORD: bridge_password
+      POSTGRES_MULTIPLE_DATABASES: analytics_db,test_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bridge_user -d bridge_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MySQL 데이터베이스
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: bridge_dev
+      MYSQL_USER: bridge_user
+      MYSQL_PASSWORD: bridge_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-mysql.sql:/docker-entrypoint-initdb.d/init-mysql.sql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "bridge_user", "-pbridge_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Celery 브로커용)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Elasticsearch
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 모든 데이터베이스 초기화 (샘플 데이터 생성)
+  database-init:
+    build: .
+    command: python scripts/init-all-databases.py
+    environment:
+      # PostgreSQL 설정
+      BRIDGE_POSTGRES_HOST: postgres
+      BRIDGE_POSTGRES_PORT: 5432
+      BRIDGE_POSTGRES_DB: bridge_dev
+      BRIDGE_POSTGRES_USER: bridge_user
+      BRIDGE_POSTGRES_PASSWORD: bridge_password
+      
+      # MySQL 설정
+      BRIDGE_MYSQL_HOST: mysql
+      BRIDGE_MYSQL_PORT: 3306
+      BRIDGE_MYSQL_DB: bridge_dev
+      BRIDGE_MYSQL_USER: bridge_user
+      BRIDGE_MYSQL_PASSWORD: bridge_password
+      
+      # Elasticsearch 설정
+      BRIDGE_ELASTICSEARCH_HOST: elasticsearch
+      BRIDGE_ELASTICSEARCH_PORT: 9200
+      BRIDGE_ELASTICSEARCH_USE_SSL: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    profiles: ["init"]
+
+  # Bridge API 서비스
+  api:
+    build: .
+    command: uvicorn bridge.orchestrator.app:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      # Celery 설정
+      BRIDGE_CELERY_BROKER_URL: redis://redis:6379/0
+      BRIDGE_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BRIDGE_CELERY_TASK_ALWAYS_EAGER: "false"
+      BRIDGE_TEST_REDIS_URL: redis://redis:6379/2
+      
+      # 데이터베이스 연결 설정
+      BRIDGE_POSTGRES_HOST: postgres
+      BRIDGE_POSTGRES_PORT: 5432
+      BRIDGE_POSTGRES_DB: bridge_dev
+      BRIDGE_POSTGRES_USER: bridge_user
+      BRIDGE_POSTGRES_PASSWORD: bridge_password
+      
+      BRIDGE_MYSQL_HOST: mysql
+      BRIDGE_MYSQL_PORT: 3306
+      BRIDGE_MYSQL_DB: bridge_dev
+      BRIDGE_MYSQL_USER: bridge_user
+      BRIDGE_MYSQL_PASSWORD: bridge_password
+      
+      BRIDGE_ELASTICSEARCH_HOST: elasticsearch
+      BRIDGE_ELASTICSEARCH_PORT: 9200
+      BRIDGE_ELASTICSEARCH_USE_SSL: "false"
+      
+      # MCP 서버 설정
+      BRIDGE_MCP_SERVER_NAME: bridge-mcp-dev
+      BRIDGE_MCP_SERVER_VERSION: 0.3.0
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+
+  # Bridge Worker 서비스
+  worker:
+    build: .
+    command: celery -A bridge.orchestrator.celery_app.celery_app worker --loglevel=info
+    environment:
+      # Celery 설정
+      BRIDGE_CELERY_BROKER_URL: redis://redis:6379/0
+      BRIDGE_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BRIDGE_CELERY_TASK_ALWAYS_EAGER: "false"
+      
+      # 데이터베이스 연결 설정
+      BRIDGE_POSTGRES_HOST: postgres
+      BRIDGE_POSTGRES_PORT: 5432
+      BRIDGE_POSTGRES_DB: bridge_dev
+      BRIDGE_POSTGRES_USER: bridge_user
+      BRIDGE_POSTGRES_PASSWORD: bridge_password
+      
+      BRIDGE_MYSQL_HOST: mysql
+      BRIDGE_MYSQL_PORT: 3306
+      BRIDGE_MYSQL_DB: bridge_dev
+      BRIDGE_MYSQL_USER: bridge_user
+      BRIDGE_MYSQL_PASSWORD: bridge_password
+      
+      BRIDGE_ELASTICSEARCH_HOST: elasticsearch
+      BRIDGE_ELASTICSEARCH_PORT: 9200
+      BRIDGE_ELASTICSEARCH_USE_SSL: "false"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+
+  # MCP 서버 (개발용)
+  mcp-server:
+    build: .
+    command: python -m src.bridge.mcp_server_real
+    environment:
+      # 데이터베이스 연결 설정
+      BRIDGE_POSTGRES_HOST: postgres
+      BRIDGE_POSTGRES_PORT: 5432
+      BRIDGE_POSTGRES_DB: bridge_dev
+      BRIDGE_POSTGRES_USER: bridge_user
+      BRIDGE_POSTGRES_PASSWORD: bridge_password
+      
+      BRIDGE_MYSQL_HOST: mysql
+      BRIDGE_MYSQL_PORT: 3306
+      BRIDGE_MYSQL_DB: bridge_dev
+      BRIDGE_MYSQL_USER: bridge_user
+      BRIDGE_MYSQL_PASSWORD: bridge_password
+      
+      BRIDGE_ELASTICSEARCH_HOST: elasticsearch
+      BRIDGE_ELASTICSEARCH_PORT: 9200
+      BRIDGE_ELASTICSEARCH_USE_SSL: "false"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+    profiles: ["mcp"]
+
+  # 테스트 실행
+  test:
+    build: .
+    command: pytest tests -v
+    environment:
+      BRIDGE_CELERY_BROKER_URL: redis://redis:6379/0
+      BRIDGE_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BRIDGE_CELERY_TASK_ALWAYS_EAGER: "false"
+      BRIDGE_TEST_REDIS_URL: redis://redis:6379/2
+      
+      # 데이터베이스 연결 설정
+      BRIDGE_POSTGRES_HOST: postgres
+      BRIDGE_POSTGRES_PORT: 5432
+      BRIDGE_POSTGRES_DB: bridge_dev
+      BRIDGE_POSTGRES_USER: bridge_user
+      BRIDGE_POSTGRES_PASSWORD: bridge_password
+      
+      BRIDGE_MYSQL_HOST: mysql
+      BRIDGE_MYSQL_PORT: 3306
+      BRIDGE_MYSQL_DB: bridge_dev
+      BRIDGE_MYSQL_USER: bridge_user
+      BRIDGE_MYSQL_PASSWORD: bridge_password
+      
+      BRIDGE_ELASTICSEARCH_HOST: elasticsearch
+      BRIDGE_ELASTICSEARCH_PORT: 9200
+      BRIDGE_ELASTICSEARCH_USE_SSL: "false"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    profiles: ["test"]
+
+volumes:
+  postgres_data:
+  mysql_data:
+  redis_data:
+  elasticsearch_data:

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
 from typing import Any, Dict
 
 import requests
+
+from bridge.utils import json as bridge_json
 
 DEFAULT_BASE_URL = "http://localhost:8000"
 
@@ -50,6 +51,11 @@ def main() -> None:
 
     print(f"작업이 제출되었습니다. job_id={job_id}")
 
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
     while True:
         try:
             status, code = fetch_status(args.base_url, job_id)
@@ -57,7 +63,7 @@ def main() -> None:
             print(f"[ERROR] 상태 조회 실패: {exc}", file=sys.stderr)
             sys.exit(2)
 
-        print(f"[STATUS {code}] {json.dumps(status, ensure_ascii=False)}")
+        print(f"[STATUS {code}] {bridge_json.dumps(status)}")
 
         if status.get("ready"):
             if status.get("successful"):

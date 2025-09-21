@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.29.0",
     "pydantic>=2.7.0",
     "asyncpg>=0.29.0",
+    "aiomysql>=0.2.0",
     "celery[redis]>=5.3.6",
     "langchain>=0.1.0",
     "openai>=1.30.0",
@@ -35,6 +36,7 @@ dev = [
 
 [project.scripts]
 bridge-mcp = "bridge.mcp_server_robust:run"
+bridge-mcp-real = "bridge.mcp_server_real:run"
 
 [tool.black]
 line-length = 100

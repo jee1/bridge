@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""강화된 MCP 서버 구현 - 재시작 안정성 개선"""
+"""실제 데이터베이스 커넥터를 사용하는 MCP 서버"""
 
 import asyncio
 import json
@@ -22,9 +22,42 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
+from .connectors.postgres import PostgresConnector
+from .connectors.mysql import MySQLConnector
+from .connectors.elasticsearch import ElasticsearchConnector
+from .connectors.registry import connector_registry
+
 logger = logging.getLogger(__name__)
 
-class RobustMCPServer:
+
+def _get_env(key: str, default: str) -> str:
+    """환경 변수를 읽고 비어있으면 기본값을 반환한다."""
+    value = os.getenv(key)
+    if value is None or not value.strip():
+        return default
+    return value.strip()
+
+
+def _get_env_int(key: str, default: int) -> int:
+    """정수 환경 변수를 읽고 비어있거나 잘못된 값이면 기본값을 사용한다."""
+    value = os.getenv(key)
+    if value is None or not value.strip():
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        logger.warning("환경 변수 %s 값 '%s'이(가) 유효한 정수가 아닙니다. 기본값 %s을(를) 사용합니다.", key, value, default)
+        return default
+
+
+def _get_env_bool(key: str, default: bool) -> bool:
+    """불리언 환경 변수를 읽고 비어있으면 기본값을 반환한다."""
+    value = os.getenv(key)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() == "true"
+
+class RealMCPServer:
     def __init__(self):
         self.tools = [
             {
@@ -33,8 +66,8 @@ class RobustMCPServer:
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "database": {"type": "string", "description": "데이터베이스 이름"},
-                        "query": {"type": "string", "description": "실행할 SQL 쿼리"}
+                        "database": {"type": "string", "description": "데이터베이스 이름 (postgres, mysql, elasticsearch)"},
+                        "query": {"type": "string", "description": "실행할 쿼리 (SQL 또는 Elasticsearch JSON)"}
                     },
                     "required": ["database", "query"]
                 }
@@ -45,7 +78,7 @@ class RobustMCPServer:
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "database": {"type": "string", "description": "데이터베이스 이름"}
+                        "database": {"type": "string", "description": "데이터베이스 이름 (postgres, mysql, elasticsearch)"}
                     },
                     "required": ["database"]
                 }
@@ -75,9 +108,13 @@ class RobustMCPServer:
         self.is_initialized = False
         self.is_running = False
         self.request_count = 0
+        self.connectors = {}
         
         # 시그널 핸들러 설정
         self._setup_signal_handlers()
+        
+        # 커넥터 초기화
+        self._initialize_connectors()
 
     def _setup_signal_handlers(self):
         """시그널 핸들러 설정"""
@@ -88,12 +125,66 @@ class RobustMCPServer:
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
+    def _initialize_connectors(self):
+        """커넥터들을 초기화한다."""
+        try:
+            # PostgreSQL 커넥터
+            postgres_settings = {
+                "host": _get_env("BRIDGE_POSTGRES_HOST", "localhost"),
+                "port": _get_env_int("BRIDGE_POSTGRES_PORT", 5432),
+                "database": _get_env("BRIDGE_POSTGRES_DB", "bridge_dev"),
+                "user": _get_env("BRIDGE_POSTGRES_USER", "bridge_user"),
+                "password": _get_env("BRIDGE_POSTGRES_PASSWORD", "bridge_password"),
+            }
+            self.connectors["postgres"] = PostgresConnector("postgres", postgres_settings)
+            connector_registry.register(self.connectors["postgres"])
+            
+            # MySQL 커넥터
+            mysql_settings = {
+                "host": _get_env("BRIDGE_MYSQL_HOST", "localhost"),
+                "port": _get_env_int("BRIDGE_MYSQL_PORT", 3306),
+                "db": _get_env("BRIDGE_MYSQL_DB", "bridge_dev"),
+                "user": _get_env("BRIDGE_MYSQL_USER", "bridge_user"),
+                "password": _get_env("BRIDGE_MYSQL_PASSWORD", "bridge_password"),
+            }
+            self.connectors["mysql"] = MySQLConnector("mysql", mysql_settings)
+            connector_registry.register(self.connectors["mysql"])
+            
+            # Elasticsearch 커넥터
+            elasticsearch_settings = {
+                "host": _get_env("BRIDGE_ELASTICSEARCH_HOST", "localhost"),
+                "port": _get_env_int("BRIDGE_ELASTICSEARCH_PORT", 9200),
+                "use_ssl": _get_env_bool("BRIDGE_ELASTICSEARCH_USE_SSL", False),
+                "username": _get_env("BRIDGE_ELASTICSEARCH_USERNAME", ""),
+                "password": _get_env("BRIDGE_ELASTICSEARCH_PASSWORD", ""),
+                "url": _get_env("BRIDGE_ELASTICSEARCH_URL", ""),
+            }
+            logger.info(f"Elasticsearch 설정: {elasticsearch_settings}")
+            
+            # Elasticsearch 커넥터 사용
+            self.connectors["elasticsearch"] = ElasticsearchConnector("elasticsearch", elasticsearch_settings)
+            connector_registry.register(self.connectors["elasticsearch"])
+            
+            logger.info(f"커넥터 초기화 완료: {list(self.connectors.keys())}")
+            
+        except Exception as e:
+            logger.error(f"커넥터 초기화 실패: {e}")
+            # 커넥터 초기화 실패해도 서버는 계속 실행 (모의 응답으로 대체)
+
     def _cleanup_resources(self):
         """리소스 정리"""
         logger.info("Cleaning up resources...")
         self.is_initialized = False
         self.is_running = False
         self.request_count = 0
+        
+        # 커넥터 정리
+        for connector in self.connectors.values():
+            if hasattr(connector, 'close'):
+                try:
+                    asyncio.create_task(connector.close())
+                except Exception as e:
+                    logger.warning(f"커넥터 정리 중 오류: {e}")
 
     async def handle_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """JSON-RPC 요청 처리"""
@@ -116,8 +207,8 @@ class RobustMCPServer:
                             "tools": {"listChanged": False}
                         },
                         "serverInfo": {
-                            "name": "bridge-mcp-robust",
-                            "version": "0.2.0"
+                            "name": "bridge-mcp-real",
+                            "version": "0.3.0"
                         }
                     }
                 }
@@ -180,38 +271,99 @@ class RobustMCPServer:
                 return {
                     "success": True,
                     "message": "커넥터 목록을 성공적으로 조회했습니다",
-                    "connectors": ["postgres", "mongodb", "elasticsearch", "mock"],
+                    "connectors": list(self.connectors.keys()),
                     "server_info": {
-                        "name": "bridge-mcp-robust",
-                        "version": "0.2.0",
+                        "name": "bridge-mcp-real",
+                        "version": "0.3.0",
                         "request_count": self.request_count
                     }
                 }
+                
             elif tool_name == "query_database":
-                return {
-                    "success": True,
-                    "database": arguments.get("database", "unknown"),
-                    "query": arguments.get("query", ""),
-                    "message": "쿼리가 성공적으로 실행되었습니다 (모의 응답)",
-                    "results": [{"id": 1, "name": "Sample Data", "timestamp": time.time()}]
-                }
-            elif tool_name == "get_schema":
-                return {
-                    "success": True,
-                    "database": arguments.get("database", "unknown"),
-                    "message": "스키마 정보를 성공적으로 조회했습니다 (모의 응답)",
-                    "tables": ["users", "orders", "products"],
-                    "columns": {
-                        "users": ["id", "name", "email", "created_at"],
-                        "orders": ["id", "user_id", "product_id", "amount", "created_at"],
-                        "products": ["id", "name", "price", "category"]
+                database = arguments.get("database", "").lower()
+                query = arguments.get("query", "")
+                
+                if database not in self.connectors:
+                    return {
+                        "success": False,
+                        "error": f"지원하지 않는 데이터베이스: {database}",
+                        "available_databases": list(self.connectors.keys())
                     }
-                }
+                
+                # 연결 테스트
+                try:
+                    await self.connectors[database].test_connection()
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"데이터베이스 연결 실패: {str(e)}",
+                        "database": database
+                    }
+                
+                # 쿼리 실행
+                try:
+                    results = []
+                    async for row in self.connectors[database].run_query(query):
+                        results.append(row)
+                    
+                    return {
+                        "success": True,
+                        "database": database,
+                        "query": query,
+                        "message": f"쿼리가 성공적으로 실행되었습니다",
+                        "results": results,
+                        "result_count": len(results)
+                    }
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"쿼리 실행 실패: {str(e)}",
+                        "database": database,
+                        "query": query
+                    }
+                    
+            elif tool_name == "get_schema":
+                database = arguments.get("database", "").lower()
+                
+                if database not in self.connectors:
+                    return {
+                        "success": False,
+                        "error": f"지원하지 않는 데이터베이스: {database}",
+                        "available_databases": list(self.connectors.keys())
+                    }
+                
+                # 연결 테스트
+                try:
+                    await self.connectors[database].test_connection()
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"데이터베이스 연결 실패: {str(e)}",
+                        "database": database
+                    }
+                
+                # 스키마 조회
+                try:
+                    metadata = await self.connectors[database].get_metadata()
+                    return {
+                        "success": True,
+                        "database": database,
+                        "message": "스키마 정보를 성공적으로 조회했습니다",
+                        "metadata": metadata
+                    }
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "error": f"스키마 조회 실패: {str(e)}",
+                        "database": database
+                    }
+                    
             elif tool_name == "analyze_data":
+                intent = arguments.get("intent", "")
                 return {
                     "success": True,
-                    "intent": arguments.get("intent", ""),
-                    "message": "분석이 성공적으로 완료되었습니다 (모의 응답)",
+                    "intent": intent,
+                    "message": "분석이 성공적으로 완료되었습니다 (실제 구현 예정)",
                     "insights": [
                         "데이터 품질이 양호합니다",
                         "추가 분석이 필요할 수 있습니다",
@@ -237,7 +389,7 @@ class RobustMCPServer:
 
     async def run(self):
         """MCP 서버 실행"""
-        logger.info("Starting Robust MCP Server...")
+        logger.info("Starting Real MCP Server...")
         self.is_running = True
         
         try:
@@ -283,7 +435,7 @@ class RobustMCPServer:
             logger.info("Keyboard interrupt received")
         finally:
             self._cleanup_resources()
-            logger.info("Robust MCP Server stopped")
+            logger.info("Real MCP Server stopped")
 
 def run():
     """동기 래퍼 함수 - 콘솔 스크립트 진입점"""
@@ -292,7 +444,7 @@ def run():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    server = RobustMCPServer()
+    server = RealMCPServer()
     asyncio.run(server.run())
 
 if __name__ == "__main__":

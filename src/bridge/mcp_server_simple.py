@@ -8,10 +8,17 @@ import os
 import sys
 from typing import Any, Dict, List
 
+from bridge.utils import json as bridge_json
+
 # 프로젝트 루트를 Python 경로에 추가
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +146,7 @@ class SimpleMCPServer:
                 "result": {
                     "content": [{
                         "type": "text",
-                        "text": json.dumps(result, ensure_ascii=False, indent=2)
+                        "text": bridge_json.dumps(result, indent=2)
                     }]
                 }
             }
@@ -183,7 +190,7 @@ class SimpleMCPServer:
                 response = await self.handle_request(request)
                 
                 # 응답 전송
-                print(json.dumps(response, ensure_ascii=False))
+                print(bridge_json.dumps(response))
                 sys.stdout.flush()
                 
             except Exception as e:

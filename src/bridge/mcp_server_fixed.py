@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
+import sys
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
@@ -12,9 +12,16 @@ from mcp import stdio_server
 from mcp.server.models import InitializationOptions
 from mcp.server.lowlevel.server import NotificationOptions
 
+from bridge.utils import json as bridge_json
+
 from .connectors import connector_registry, ConnectorNotFoundError
 from .connectors.exceptions import ConnectionError, QueryExecutionError, MetadataError
 from .semantic.models import TaskRequest
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +113,7 @@ class BridgeMCPServer:
                 return types.CallToolResult(
                     content=[types.TextContent(
                         type="text",
-                        text=json.dumps({"error": str(e)}, ensure_ascii=False, indent=2)
+                        text=bridge_json.dumps({"error": str(e)}, indent=2)
                     )]
                 )
     
@@ -128,7 +135,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": True,
                         "database": database,
                         "query": query,
@@ -143,7 +150,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": False,
                         "database": database,
                         "error": str(e)
@@ -162,7 +169,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": True,
                         "database": database,
                         "metadata": metadata
@@ -175,7 +182,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": False,
                         "database": database,
                         "error": str(e)
@@ -207,7 +214,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps(analysis_result, ensure_ascii=False, indent=2)
+                    text=bridge_json.dumps(analysis_result, indent=2)
                 )]
             )
             
@@ -216,7 +223,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": False,
                         "intent": intent,
                         "error": str(e)
@@ -232,7 +239,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": True,
                         "connectors": available_connectors,
                         "count": len(available_connectors)
@@ -245,7 +252,7 @@ class BridgeMCPServer:
             return types.CallToolResult(
                 content=[types.TextContent(
                     type="text",
-                    text=json.dumps({
+                    text=bridge_json.dumps({
                         "success": False,
                         "error": str(e)
                     }, ensure_ascii=False, indent=2)
