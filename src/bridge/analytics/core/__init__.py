@@ -8,6 +8,10 @@ from .cross_source_joiner import CrossSourceJoiner
 from .data_integration import UnifiedDataFrame
 from .type_normalizer import TypeNormalizer
 from .statistics import StatisticsAnalyzer, DescriptiveStats, CorrelationResult
+from .quality import (
+    QualityChecker, MissingValueStats, OutlierStats, 
+    ConsistencyStats, QualityReport
+)
 
 __all__ = [
     "UnifiedDataFrame",
@@ -17,4 +21,9 @@ __all__ = [
     "StatisticsAnalyzer",
     "DescriptiveStats",
     "CorrelationResult",
+    "QualityChecker",
+    "MissingValueStats",
+    "OutlierStats",
+    "ConsistencyStats",
+    "QualityReport",
 ]
