@@ -50,7 +50,23 @@ make test
 make dev
 ```
 
-### 5. CLI 사용법
+### 5. MCP 서버 사용법
+```bash
+# 견고한 MCP 서버 실행 (권장)
+bridge-mcp
+
+# 실제 데이터베이스 연동 MCP 서버 실행
+bridge-mcp-real
+
+# 직접 Python 모듈로 실행
+python -m src.bridge.mcp_server_robust
+python -m src.bridge.mcp_server_real
+python -m src.bridge.mcp_server_working
+python -m src.bridge.mcp_server_minimal
+python -m src.bridge.mcp_server_simple
+```
+
+### 6. CLI 사용법
 ```bash
 # 기본 사용법
 python cli.py "고객 세그먼트 분석"
@@ -67,7 +83,7 @@ python cli.py "분석 작업" --poll-interval 5.0
 
 상태 출력은 HTTP 코드와 함께 제공됩니다. `202`는 작업이 큐에 남아 있음을 의미하며, `200`은 완료(성공/실패)를 뜻합니다. 실패 시 `error` 필드를 확인하고 재시도하거나 로그를 확인하세요.
 
-### 6. Docker Compose 개발 환경 (선택사항)
+### 7. Docker Compose 개발 환경 (선택사항)
 ```bash
 # Redis와 함께 전체 개발 환경 실행
 docker-compose -f docker-compose.dev.yml up -d
@@ -151,11 +167,12 @@ curl "http://localhost:8000/health"
 
 ## 🚀 다음 단계
 
-1. **커넥터 확장**: MongoDB, Elasticsearch 지원
-2. **AI 통합**: LangChain, OpenAI SDK 통합
-3. **모니터링**: Prometheus, Grafana 대시보드
-4. **테스트**: 단위/통합 테스트 확장
-5. **문서화**: API 문서 자동 생성
+1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
+2. **AI 통합**: LangChain, OpenAI SDK 통합 완료
+3. **MCP 서버**: 7개 버전의 MCP 서버 구현 완료
+4. **모니터링**: Prometheus, Grafana 대시보드
+5. **테스트**: 단위/통합 테스트 확장
+6. **문서화**: API 문서 자동 생성
 
 ## 📚 추가 자료
 

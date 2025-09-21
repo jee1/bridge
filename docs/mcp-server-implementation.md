@@ -1,8 +1,8 @@
-# Bridge MCP 서버 구현 계획
+# Bridge MCP 서버 구현 완료
 
 ## 개요
 
-Bridge 프로젝트를 Cursor IDE에서 사용할 수 있는 MCP(Model Context Protocol) 서버로 변환하는 계획을 설명합니다. **현재는 구현되지 않은 상태**이며, 향후 개발 예정입니다.
+Bridge 프로젝트를 Cursor IDE에서 사용할 수 있는 MCP(Model Context Protocol) 서버로 변환하는 작업이 **완료되었습니다**. 7개의 다양한 버전의 MCP 서버가 구현되어 실행 가능한 상태입니다.
 
 ## 현재 상태 vs MCP 서버 요구사항
 
@@ -16,9 +16,9 @@ FastAPI App → REST API → Celery Tasks → Connectors → Databases
 Cursor IDE → JSON-RPC → MCP Server → Bridge Services → Databases
 ```
 
-## MCP 서버 구현 계획 (향후 개발)
+## 구현된 MCP 서버들
 
-### 1. MCP 서버 래퍼 생성 (계획)
+### 1. 구현된 MCP 서버 파일들
 
 ```python
 # src/bridge/mcp_server.py
@@ -184,31 +184,40 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### 2. 의존성 추가 (계획)
+### 2. 의존성 추가 (완료)
 
 ```toml
-# pyproject.toml에 추가 예정
+# pyproject.toml에 추가됨
 dependencies = [
     # ... 기존 의존성들
-    "mcp>=1.0.0",  # MCP 프로토콜 라이브러리
-    "mcp-server-stdio>=1.0.0",  # stdio 서버
+    "mcp==1.0.0",  # MCP 프로토콜 라이브러리
 ]
+
+[project.scripts]
+bridge-mcp = "bridge.mcp_server_robust:run"
+bridge-mcp-real = "bridge.mcp_server_real:run"
 ```
 
-**참고**: 현재 `pyproject.toml`에는 MCP 관련 의존성이 포함되어 있지 않습니다.
+**완료**: `pyproject.toml`에 MCP 관련 의존성과 실행 스크립트가 추가되었습니다.
 
-### 3. Cursor IDE 설정 (계획)
+### 3. Cursor IDE 설정 (사용 가능)
 
 ```json
-// .cursor/settings.json (향후 설정)
+// .cursor/settings.json
 {
   "mcp": {
     "servers": {
       "bridge": {
-        "command": "python",
-        "args": ["-m", "src.bridge.mcp_server"],
+        "command": "bridge-mcp",
         "env": {
           "BRIDGE_DATABASE_URL": "postgresql://user:pass@localhost/db"
+        }
+      },
+      "bridge-real": {
+        "command": "bridge-mcp-real",
+        "env": {
+          "BRIDGE_ELASTICSEARCH_HOST": "localhost",
+          "BRIDGE_ELASTICSEARCH_PORT": "9200"
         }
       }
     }
@@ -216,55 +225,51 @@ dependencies = [
 }
 ```
 
-### 4. 실행 스크립트 (계획)
+### 4. 실행 스크립트 (완료)
 
-```python
-# scripts/run_mcp_server.py (향후 생성)
-#!/usr/bin/env python3
-"""Bridge MCP 서버 실행 스크립트"""
+```bash
+# 스크립트를 통한 실행 (권장)
+bridge-mcp
+bridge-mcp-real
 
-import asyncio
-import sys
-from pathlib import Path
-
-# 프로젝트 루트를 Python 경로에 추가
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from src.bridge.mcp_server import main
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# 직접 Python 모듈로 실행
+python -m src.bridge.mcp_server_robust
+python -m src.bridge.mcp_server_real
+python -m src.bridge.mcp_server_working
+python -m src.bridge.mcp_server_minimal
+python -m src.bridge.mcp_server_simple
 ```
 
-## 사용 예시 (계획)
+## 사용 예시 (구현 완료)
 
-### Cursor IDE에서 사용 (향후 구현)
+### Cursor IDE에서 사용 (사용 가능)
 
 1. **데이터베이스 쿼리 실행**
 ```python
-# Cursor IDE에서 MCP 도구 호출 (계획)
+# Cursor IDE에서 MCP 도구 호출 (사용 가능)
 result = await mcp.call_tool("query_database", {
-    "database": "analytics",
-    "query": "SELECT * FROM users WHERE created_at > %s",
-    "params": {"created_at": "2024-01-01"}
+    "database": "elasticsearch",
+    "query": '{"query": {"match_all": {}}}'
 })
 ```
 
 2. **스키마 정보 조회**
 ```python
 schema = await mcp.call_tool("get_schema", {
-    "database": "analytics"
+    "database": "elasticsearch"
 })
 ```
 
 3. **데이터 분석**
 ```python
 analysis = await mcp.call_tool("analyze_data", {
-    "intent": "고객 세그먼트 분석",
-    "sources": ["analytics"],
-    "context": {"time_range": "2024-01-01 to 2024-12-31"}
+    "intent": "고객 세그먼트 분석"
 })
+```
+
+4. **커넥터 목록 조회**
+```python
+connectors = await mcp.call_tool("list_connectors", {})
 ```
 
 ## 장점
@@ -274,12 +279,22 @@ analysis = await mcp.call_tool("analyze_data", {
 3. **표준화된 인터페이스**: MCP 프로토콜을 통한 일관된 도구 사용
 4. **확장성**: 새로운 도구와 리소스 쉽게 추가
 
-## 다음 단계 (구현 계획)
+## 구현된 MCP 서버 버전들
 
-1. **MCP 서버 구현**: 위의 코드를 기반으로 실제 구현
-2. **의존성 추가**: `pyproject.toml`에 MCP 관련 의존성 추가
-3. **테스트**: Cursor IDE와의 통합 테스트
-4. **문서화**: 사용자 가이드 및 API 문서 작성
-5. **최적화**: 성능 및 안정성 개선
+1. **mcp_server_robust.py** - 견고한 MCP 서버 (권장)
+2. **mcp_server_real.py** - 실제 데이터베이스 연동 서버
+3. **mcp_server_working.py** - 작동하는 버전
+4. **mcp_server_minimal.py** - 최소 기능 버전
+5. **mcp_server_simple.py** - 단순 버전
+6. **mcp_server.py** - 기본 MCP 서버
+7. **mcp_server_fixed.py** - 수정된 버전
 
-**현재 상태**: MCP 서버는 구현되지 않았으며, 향후 개발 예정입니다.
+## 다음 단계 (개선 계획)
+
+1. **성능 최적화**: 메모리 사용량 및 응답 시간 개선
+2. **에러 처리**: 더 상세한 에러 메시지 및 복구 로직
+3. **로깅 강화**: 구조화된 로깅 및 모니터링
+4. **테스트 확장**: 통합 테스트 및 성능 테스트
+5. **문서화**: 사용자 가이드 및 API 문서 보완
+
+**현재 상태**: MCP 서버가 완전히 구현되어 실행 가능한 상태입니다.

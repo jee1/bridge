@@ -128,7 +128,21 @@ docker-compose -f docker-compose.dev.yml run --rm test
 
 서버가 실행되면 [http://localhost:8000](http://localhost:8000)에서 API에 접근할 수 있습니다.
 
-### 7. CLI로 작업 제출 및 상태 폴링 (선택사항)
+### 7. MCP 서버 실행 (선택사항)
+
+```bash
+# 견고한 MCP 서버 실행 (권장)
+bridge-mcp
+
+# 실제 데이터베이스 연동 MCP 서버 실행
+bridge-mcp-real
+
+# 직접 Python 모듈로 실행
+python -m src.bridge.mcp_server_robust
+python -m src.bridge.mcp_server_real
+```
+
+### 8. CLI로 작업 제출 및 상태 폴링 (선택사항)
 
 ```bash
 python cli.py "지역별 이탈 위험 분석" --sources mock --tools sql_executor
@@ -297,11 +311,12 @@ docker-compose -f docker-compose.dev.yml run --rm test
 
 ## 🚀 다음 단계
 
-1. **커넥터 확장**: MongoDB, Elasticsearch 커넥터 구현
-2. **AI 통합**: LangChain, OpenAI SDK 통합
-3. **모니터링**: Prometheus, Grafana 대시보드 구축
-4. **테스트**: 단위/통합 테스트 확장
-5. **문서화**: API 문서 자동 생성
+1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
+2. **AI 통합**: LangChain, OpenAI SDK 통합 완료
+3. **MCP 서버**: 7개 버전의 MCP 서버 구현 완료
+4. **모니터링**: Prometheus, Grafana 대시보드 구축
+5. **테스트**: 단위/통합 테스트 확장
+6. **문서화**: API 문서 자동 생성
 
 ## 🤝 기여하기
 

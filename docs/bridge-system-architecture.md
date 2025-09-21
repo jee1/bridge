@@ -41,15 +41,22 @@ graph TB
         E --> Q[Vector Search Engine]
     end
     
+    subgraph "MCP Server Layer"
+        E --> R[MCP Server<br/>7개 버전]
+        R --> S[Bridge MCP Robust]
+        R --> T[Bridge MCP Real]
+        R --> U[Bridge MCP Working]
+    end
+    
     subgraph "Data Sources"
-        H --> R[(PostgreSQL)]
-        I --> S[(MongoDB)]
-        J --> T[(Elasticsearch)]
+        H --> V[(PostgreSQL)]
+        I --> W[(MongoDB)]
+        J --> X[(Elasticsearch)]
     end
     
     subgraph "Storage"
-        M --> U[Audit Logs<br/>JSONL]
-        K --> V[Schema Registry]
+        M --> Y[Audit Logs<br/>JSONL]
+        K --> Z[Schema Registry]
     end
 ```
 
@@ -147,7 +154,27 @@ class BaseConnector(ABC):
 - 사용자별 권한 관리
 - 동적 권한 검사
 
-### 5. 감사 로깅 (`/src/bridge/audit/`)
+### 5. MCP 서버 레이어 (`/src/bridge/mcp_server*.py`)
+
+Cursor IDE와의 통합을 위한 MCP 서버들을 제공합니다.
+
+#### MCP 서버 구현체들
+- **mcp_server_robust.py**: 견고한 MCP 서버 (권장)
+- **mcp_server_real.py**: 실제 데이터베이스 연동 서버
+- **mcp_server_working.py**: 작동하는 버전
+- **mcp_server_minimal.py**: 최소 기능 버전
+- **mcp_server_simple.py**: 단순 버전
+- **mcp_server.py**: 기본 MCP 서버
+- **mcp_server_fixed.py**: 수정된 버전
+
+#### MCP 서버 기능
+- JSON-RPC 프로토콜 지원
+- 데이터베이스 쿼리 실행 도구
+- 스키마 정보 조회 도구
+- 데이터 분석 도구
+- 커넥터 목록 조회 도구
+
+### 6. 감사 로깅 (`/src/bridge/audit/`)
 
 시스템 활동을 추적하고 기록합니다.
 
@@ -203,6 +230,11 @@ flowchart LR
 - `--tools` - 필요한 도구 목록 지정
 - `--base-url` - 서버 URL 지정
 - `--poll-interval` - 상태 조회 간격 조정
+
+### MCP 서버 인터페이스
+- `bridge-mcp` - 견고한 MCP 서버 실행
+- `bridge-mcp-real` - 실제 데이터베이스 연동 MCP 서버 실행
+- `python -m src.bridge.mcp_server_*` - 직접 Python 모듈로 실행
 
 #### 요청 예시
 ```bash
@@ -401,8 +433,9 @@ async def new_endpoint(request: TaskRequest) -> TaskResponse:
 
 ## 다음 단계
 
-1. **커넥터 확장**: MongoDB, Elasticsearch 커넥터 구현
-2. **AI 통합**: LangChain 및 OpenAI SDK 통합
-3. **모니터링 강화**: Prometheus, Grafana 대시보드 구축
-4. **테스트 커버리지**: 단위 테스트 및 통합 테스트 확장
-5. **문서화**: API 문서 및 사용자 가이드 작성
+1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
+2. **AI 통합**: LangChain 및 OpenAI SDK 통합 완료
+3. **MCP 서버**: 7개 버전의 MCP 서버 구현 완료
+4. **모니터링 강화**: Prometheus, Grafana 대시보드 구축
+5. **테스트 커버리지**: 단위 테스트 및 통합 테스트 확장
+6. **문서화**: API 문서 및 사용자 가이드 작성

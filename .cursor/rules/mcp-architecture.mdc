@@ -20,37 +20,40 @@ description: MCP 아키텍처 및 데이터 커넥터 관련 규칙
 
 ## 커넥터 구현 패턴
 
-### 기본 커넥터 인터페이스
+### 실제 구현된 커넥터 인터페이스
 ```python
+# src/bridge/connectors/base.py
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
-from pydantic import BaseModel
-
-class ConnectorConfig(BaseModel):
-    """커넥터 설정 모델"""
-    name: str
-    connection_string: str
-    credentials: Dict[str, str]
-    scope: Optional[Dict[str, Any]] = None
+from typing import Dict, Any, Iterable
 
 class BaseConnector(ABC):
-    """커넥터 기본 클래스"""
+    """데이터 소스별 공통 인터페이스"""
     
+    def __init__(self, name: str, settings: Dict[str, Any]):
+        self.name = name
+        self.settings = settings
+
     @abstractmethod
-    def connect(self) -> bool:
-        """데이터 소스에 연결"""
+    def test_connection(self) -> bool:
+        """데이터 소스와의 연결을 테스트"""
         pass
-    
+
     @abstractmethod
-    def get_schema(self) -> Dict[str, Any]:
-        """스키마 정보 반환"""
+    def get_metadata(self) -> Dict[str, Any]:
+        """데이터 소스의 메타데이터를 조회"""
         pass
-    
+
     @abstractmethod
-    def execute_query(self, query: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """쿼리 실행"""
+    def run_query(self, query: str, params: Dict[str, Any] = None) -> Iterable[Dict[str, Any]]:
+        """쿼리를 실행하고 결과를 반환"""
         pass
 ```
+
+### 구현된 커넥터들
+- **MockConnector**: 테스트 및 개발용 모의 커넥터
+- **ElasticsearchConnector**: Elasticsearch 데이터베이스 연동
+- **PostgresConnector**: PostgreSQL 데이터베이스 연동 (계획됨)
+- **MongoDBConnector**: MongoDB 데이터베이스 연동 (계획됨)
 
 ### 지원 데이터 소스
 - **SQL 데이터베이스**: MySQL, PostgreSQL
@@ -66,33 +69,73 @@ class BaseConnector(ABC):
 3. **결과 병합**: 중간 결과를 병합하고 MCP 컨텍스트로 재패키징
 4. **성능 추적**: 비용, 지연, 품질 지표를 추적하여 지속적 개선
 
-### 비동기 워크플로 처리
+### 실제 구현된 비동기 워크플로 처리
 ```python
+# src/bridge/orchestrator/tasks.py
 from celery import Celery
-from fastapi import FastAPI, BackgroundTasks
-from langchain.llms import OpenAI
 from typing import Dict, Any, List
 
-app = FastAPI()
-celery_app = Celery('bridge-orchestrator', broker='redis://localhost:6379')
+@celery_app.task(name="bridge.execute_pipeline")
+def execute_pipeline(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """컨텍스트 수집 및 도구 실행을 모사한 태스크"""
+    intent = payload.get("intent", "")
+    sources: List[str] = payload.get("sources", [])
+    tools = payload.get("required_tools", [])
+    
+    # 커넥터 처리 및 메타데이터 수집
+    collected_context = []
+    missing_sources = []
+    errors = []
+    
+    for source_name in sources:
+        try:
+            connector = connector_registry.get(source_name)
+            result = _process_connector(connector, source_name)
+            # 결과 처리...
+        except ConnectorNotFoundError:
+            missing_sources.append(source_name)
+    
+    return {
+        "intent": intent,
+        "status": _determine_status(missing_sources, errors),
+        "collected_sources": collected_context,
+        "missing_sources": missing_sources,
+        "errors": errors,
+        "triggered_tools": tools,
+    }
+```
 
-@celery_app.task
-async def process_mcp_workflow(workflow_config: Dict[str, Any]) -> Dict[str, Any]:
-    """비동기 MCP 워크플로 처리"""
-    # 1. 시맨틱 카탈로그 조회
-    # 2. MCP 컨텍스트 패키지 생성
-    # 3. 커넥터/툴 실행 스케줄링
-    # 4. 결과 병합 및 재패키징
-    pass
+### 실제 구현된 MCP 서버들
+```python
+# src/bridge/mcp_server_robust.py - 견고한 MCP 서버
+class RobustMCPServer:
+    def __init__(self):
+        self.tools = [
+            {
+                "name": "query_database",
+                "description": "데이터베이스 쿼리 실행",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "database": {"type": "string"},
+                        "query": {"type": "string"}
+                    },
+                    "required": ["database", "query"]
+                }
+            },
+            # ... 기타 도구들
+        ]
+    
+    async def run(self):
+        """MCP 서버 실행"""
+        # JSON-RPC 요청 처리
+        pass
 
-@app.post("/workflows/execute")
-async def execute_workflow(
-    workflow_config: Dict[str, Any],
-    background_tasks: BackgroundTasks
-) -> Dict[str, str]:
-    """워크플로 실행 엔드포인트"""
-    task = process_mcp_workflow.delay(workflow_config)
-    return {"task_id": task.id, "status": "started"}
+# src/bridge/mcp_server_real.py - 실제 데이터베이스 연동 서버
+class RealMCPServer:
+    def __init__(self):
+        # 실제 데이터베이스 커넥터 연동
+        pass
 ```
 
 ### LangChain/OpenAI SDK 통합
@@ -129,6 +172,27 @@ class MCPOrchestrator:
 - **템플릿 시스템**: 버전 관리되고 파라미터화된 AI 작업 템플릿
 - **실행 샌드박스**: 명시적 도구 허용 목록으로 안전한 실행 환경 제공
 - **비동기 처리**: Celery/Redis를 통한 장시간 실행 작업 처리
+
+### MCP 서버 실행 방법
+```bash
+# 견고한 MCP 서버 실행
+bridge-mcp
+
+# 실제 데이터베이스 연동 MCP 서버 실행
+bridge-mcp-real
+
+# 직접 Python 모듈로 실행
+python -m src.bridge.mcp_server_robust
+python -m src.bridge.mcp_server_real
+```
+
+### MCP 서버 파일 구조
+- `src/bridge/mcp_server.py` - 기본 MCP 서버
+- `src/bridge/mcp_server_robust.py` - 견고한 버전 (권장)
+- `src/bridge/mcp_server_real.py` - 실제 데이터베이스 연동
+- `src/bridge/mcp_server_working.py` - 작동하는 버전
+- `src/bridge/mcp_server_minimal.py` - 최소 기능 버전
+- `src/bridge/mcp_server_simple.py` - 단순 버전
 
 ## AI 작업 템플릿
 

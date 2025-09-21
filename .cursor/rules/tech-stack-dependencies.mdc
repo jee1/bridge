@@ -21,6 +21,7 @@ dependencies = [
     "uvicorn[standard]>=0.29.0",
     "pydantic>=2.7.0",
     "asyncpg>=0.29.0",
+    "aiomysql>=0.2.0",
     "celery[redis]>=5.3.6",
     "langchain>=0.1.0",
     "openai>=1.30.0",
@@ -28,7 +29,8 @@ dependencies = [
     "pymongo>=4.7.0",
     "elasticsearch>=8.12.0",
     "polars>=0.20.0",
-    "pandas>=2.2.0"
+    "pandas>=2.2.0",
+    "mcp==1.0.0"
 ]
 
 [project.optional-dependencies]
@@ -38,7 +40,10 @@ dev = [
     "httpx>=0.27.0",
     "black>=24.3.0",
     "isort>=5.13.0",
-    "mypy>=1.9.0"
+    "mypy>=1.9.0",
+    "bandit>=1.7.5",
+    "safety>=2.3.5",
+    "python-json-logger>=2.0.0"
 ]
 
 [tool.black]
@@ -49,9 +54,14 @@ target-version = ["py311"]
 profile = "black"
 line_length = 100
 
+[project.scripts]
+bridge-mcp = "bridge.mcp_server_robust:run"
+bridge-mcp-real = "bridge.mcp_server_real:run"
+
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q --cov=src --cov-report=term-missing --cov-report=html --cov-fail-under=80"
 pythonpath = ["src"]
+asyncio_mode = "auto"
 ```
 
 ## 핵심 라이브러리 버전 호환성
@@ -70,6 +80,7 @@ pythonpath = ["src"]
 ### AI & ML
 - **LangChain**: `>=0.1.0` - AI 워크플로우 프레임워크
 - **OpenAI**: `>=1.30.0` - 최신 OpenAI API
+- **MCP**: `==1.0.0` - Model Context Protocol 라이브러리
 
 ### 데이터 처리
 - **Pandas**: `>=2.2.0` - 데이터 분석 라이브러리
@@ -77,6 +88,11 @@ pythonpath = ["src"]
 
 ### 인프라 & 배포
 - **Celery**: `>=5.3.6` - 비동기 작업 큐
+
+### 보안 & 품질
+- **Bandit**: `>=1.7.5` - 보안 취약점 검사
+- **Safety**: `>=2.3.5` - 의존성 보안 검사
+- **Python-JSON-Logger**: `>=2.0.0` - 구조화된 로깅
 
 ## Docker 의존성 관리
 
@@ -104,6 +120,9 @@ COPY assets/ ./assets/
 
 # 실행
 CMD ["uvicorn", "src.bridge.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# MCP 서버 실행 (대안)
+# CMD ["bridge-mcp"]
 ```
 
 ### Docker Compose 개발 환경
