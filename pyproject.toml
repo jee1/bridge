@@ -79,3 +79,34 @@ exclude_lines = [
 [tool.bandit]
 exclude_dirs = ["tests", "test_*"]
 skips = ["B101", "B601"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "asyncpg.*",
+    "aiomysql.*",
+    "pandas.*",
+    "pyarrow.*",
+    "duckdb.*",
+    "mcp.*",
+    "pythonjsonlogger.*",
+    "elasticsearch.*",
+    "pymongo.*"
+]
+ignore_missing_imports = true

@@ -7,10 +7,14 @@ from .connector_adapter import ConnectorAdapter
 from .cross_source_joiner import CrossSourceJoiner
 from .data_integration import UnifiedDataFrame
 from .type_normalizer import TypeNormalizer
+from .statistics import StatisticsAnalyzer, DescriptiveStats, CorrelationResult
 
 __all__ = [
     "UnifiedDataFrame",
     "TypeNormalizer",
     "ConnectorAdapter",
     "CrossSourceJoiner",
+    "StatisticsAnalyzer",
+    "DescriptiveStats",
+    "CorrelationResult",
 ]

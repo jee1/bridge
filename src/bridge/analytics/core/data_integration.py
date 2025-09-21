@@ -67,6 +67,12 @@ class UnifiedDataFrame:
         if hasattr(data, "read_all"):
             return data.read_all()
 
+        # 딕셔너리 처리
+        if isinstance(data, dict):
+            # 딕셔너리를 pandas DataFrame으로 변환 후 Arrow Table로 변환
+            pandas_df = pd.DataFrame(data)
+            return pa.Table.from_pandas(pandas_df)
+
         # Iterable[Dict[str, Any]] 처리
         try:
             data_list = list(data)
@@ -173,7 +179,7 @@ class UnifiedDataFrame:
         """
         self._metadata[key] = value
 
-    def get_metadata(self, key: str = None) -> Any:
+    def get_metadata(self, key: Optional[str] = None) -> Any:
         """메타데이터를 조회합니다.
 
         Args:
