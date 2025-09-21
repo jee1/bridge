@@ -12,6 +12,10 @@ from .quality import (
     QualityChecker, MissingValueStats, OutlierStats, 
     ConsistencyStats, QualityReport
 )
+from .visualization import (
+    ChartGenerator, DashboardGenerator, ReportGenerator,
+    ChartConfig, DashboardConfig, ReportConfig
+)
 
 __all__ = [
     "UnifiedDataFrame",
@@ -26,4 +30,10 @@ __all__ = [
     "OutlierStats",
     "ConsistencyStats",
     "QualityReport",
+    "ChartGenerator",
+    "DashboardGenerator",
+    "ReportGenerator",
+    "ChartConfig",
+    "DashboardConfig",
+    "ReportConfig",
 ]
