@@ -6,17 +6,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies; rely on runtime DNS configuration
+# Install minimal dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Copy only essential files first
+COPY pyproject.toml .
+COPY README.md .
 
-# Install Python dependencies with retry and timeout settings
+# Install only core dependencies first
 RUN pip install --upgrade pip --timeout=300 --retries=5 && \
-    pip install -e .[dev] --timeout=300 --retries=5
+    pip install fastapi uvicorn pydantic --timeout=300 --retries=5
+
+# Copy source code
+COPY src/ ./src/
 
 ENV PYTHONPATH=/app/src
 

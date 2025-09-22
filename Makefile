@@ -272,7 +272,7 @@ pr-test-full:
 	@echo "포함: Docker 환경, 통합 테스트, API 테스트"
 	@echo ""
 	@echo "1. Docker 환경 구축..."
-	$(COMPOSE) -f docker-compose.dev-full.yml build
+	$(COMPOSE) --profile test -f docker-compose.dev-full.yml build
 	@echo ""
 	@echo "2. 서비스 시작..."
 	$(COMPOSE) -f docker-compose.dev-full.yml up -d postgres mysql redis elasticsearch
