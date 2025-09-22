@@ -22,6 +22,8 @@ dependencies = [
     "duckdb>=0.9.0",
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
+    "croniter>=1.4.0",
+    "requests>=2.31.0",
     "faker>=24.0.0",
     "psutil>=5.9.0",
     "mcp==1.0.0"

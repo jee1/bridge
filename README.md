@@ -192,23 +192,23 @@ Bridge MCP는 환경 변수로 제어되는 다양한 실행 모드를 지원합
 ```bash
 # 통합 서버 실행 (권장)
 make mcp-server
-python -m src.bridge.mcp_server_unified
+python -m bridge.mcp_server_unified
 
 # 환경 변수로 모드 지정
-BRIDGE_MCP_MODE=development python -m src.bridge.mcp_server_unified
-BRIDGE_MCP_MODE=production python -m src.bridge.mcp_server_unified
-BRIDGE_MCP_MODE=real python -m src.bridge.mcp_server_unified
-BRIDGE_MCP_MODE=mock python -m src.bridge.mcp_server_unified
+BRIDGE_MCP_MODE=development python -m bridge.mcp_server_unified
+BRIDGE_MCP_MODE=production python -m bridge.mcp_server_unified
+BRIDGE_MCP_MODE=real python -m bridge.mcp_server_unified
+BRIDGE_MCP_MODE=mock python -m bridge.mcp_server_unified
 
 # 개별 서버 실행 (개발/테스트용)
 bridge-mcp
 bridge-mcp-real
-python -m src.bridge.mcp_server_robust
-python -m src.bridge.mcp_server_real
-python -m src.bridge.mcp_server_working
-python -m src.bridge.mcp_server_minimal
-python -m src.bridge.mcp_server_simple
-python -m src.bridge.mcp_server_fixed
+python -m bridge.mcp_server_robust
+python -m bridge.mcp_server_real
+python -m bridge.mcp_server_working
+python -m bridge.mcp_server_minimal
+python -m bridge.mcp_server_simple
+python -m bridge.mcp_server_fixed
 
 # 스크립트 파일을 통한 실행
 python scripts/run_mcp_server.py
@@ -388,6 +388,18 @@ docker-compose -f docker-compose.dev.yml run --rm test
 
 ## 📖 문서
 
+### 사용자 가이드
+- [사용자 가이드](docs/user-guide.md) - 각 기능별 상세한 사용 방법
+- [API 참조 문서](docs/api-reference.md) - REST API 완전 참조
+- [MCP 설치 및 사용 가이드](docs/mcp-installation-guide.md) - MCP 서버 설치 및 클라이언트 연결 방법
+
+### 개발자 가이드
+- [개발자 가이드](docs/developer-guide.md) - 개발 환경 설정 및 기여 방법
+- [아키텍처 문서](docs/architecture.md) - 시스템 아키텍처 및 설계
+- [보안 가이드](docs/security-guide.md) - 보안 정책 및 구현 방법
+- [성능 튜닝 가이드](docs/performance-tuning.md) - 성능 최적화 방법
+
+### 기술 문서
 - [개발자 빠른 시작 가이드](docs/developer-quick-start.md)
 - [시스템 아키텍처](docs/bridge-system-architecture.md)
 - [MCP 사양](docs/bridge-model-context-protocol.md)
