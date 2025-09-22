@@ -26,6 +26,27 @@ class DataType(Enum):
     ARRAY = "array"
 
 
+class ModelType(Enum):
+    """ML 모델 타입"""
+    CLASSIFICATION = "classification"
+    REGRESSION = "regression"
+    CLUSTERING = "clustering"
+    TIME_SERIES = "time_series"
+    ANOMALY_DETECTION = "anomaly_detection"
+    RECOMMENDATION = "recommendation"
+    NLP = "nlp"
+    COMPUTER_VISION = "computer_vision"
+
+
+class ModelStatus(Enum):
+    """모델 상태"""
+    TRAINING = "training"
+    READY = "ready"
+    DEPLOYED = "deployed"
+    DEPRECATED = "deprecated"
+    FAILED = "failed"
+
+
 class QualityRuleType(Enum):
     """품질 규칙 타입"""
     NOT_NULL = "not_null"
@@ -66,6 +87,95 @@ class TransformationRule:
     transformation_type: str  # map, format, calculate, etc.
     parameters: Dict[str, Any]
     description: Optional[str] = None
+
+
+@dataclass
+class ModelMetrics:
+    """모델 성능 메트릭"""
+    accuracy: Optional[float] = None
+    precision: Optional[float] = None
+    recall: Optional[float] = None
+    f1_score: Optional[float] = None
+    mse: Optional[float] = None
+    mae: Optional[float] = None
+    r2_score: Optional[float] = None
+    custom_metrics: Optional[Dict[str, float]] = None
+
+
+@dataclass
+class ModelInputSchema:
+    """모델 입력 스키마"""
+    features: List[ColumnSchema]
+    target_column: Optional[str] = None
+    preprocessing_steps: Optional[List[str]] = None
+
+
+@dataclass
+class ModelOutputSchema:
+    """모델 출력 스키마"""
+    predictions: List[ColumnSchema]
+    probabilities: Optional[List[ColumnSchema]] = None
+    confidence_scores: Optional[List[ColumnSchema]] = None
+
+
+@dataclass
+class ModelContract:
+    """ML 모델 계약 정의"""
+    id: str
+    name: str
+    version: str
+    model_type: ModelType
+    status: ModelStatus
+    description: Optional[str] = None
+    algorithm: Optional[str] = None
+    framework: Optional[str] = None  # sklearn, xgboost, torch, etc.
+    input_schema: Optional[ModelInputSchema] = None
+    output_schema: Optional[ModelOutputSchema] = None
+    performance_metrics: Optional[ModelMetrics] = None
+    training_data_info: Optional[Dict[str, Any]] = None
+    hyperparameters: Optional[Dict[str, Any]] = None
+    created_at: datetime = None
+    updated_at: datetime = None
+    created_by: Optional[str] = None
+    tags: List[str] = None
+    model_path: Optional[str] = None
+    dependencies: Optional[Dict[str, str]] = None  # 라이브러리 버전 정보
+
+    def __post_init__(self):
+        if self.created_at is None:
+            self.created_at = datetime.now()
+        if self.updated_at is None:
+            self.updated_at = datetime.now()
+        if self.tags is None:
+            self.tags = []
+        if self.dependencies is None:
+            self.dependencies = {}
+
+    def to_dict(self) -> Dict[str, Any]:
+        """딕셔너리로 변환"""
+        data = asdict(self)
+        # datetime 객체를 문자열로 변환
+        data['created_at'] = self.created_at.isoformat()
+        data['updated_at'] = self.updated_at.isoformat()
+        # Enum 객체를 값으로 변환
+        data['model_type'] = self.model_type.value
+        data['status'] = self.status.value
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ModelContract':
+        """딕셔너리에서 생성"""
+        # datetime 문자열을 datetime 객체로 변환
+        if 'created_at' in data and isinstance(data['created_at'], str):
+            data['created_at'] = datetime.fromisoformat(data['created_at'])
+        if 'updated_at' in data and isinstance(data['updated_at'], str):
+            data['updated_at'] = datetime.fromisoformat(data['updated_at'])
+        # Enum 값들을 Enum 객체로 변환
+        if 'model_type' in data and isinstance(data['model_type'], str):
+            data['model_type'] = ModelType(data['model_type'])
+        if 'status' in data and isinstance(data['status'], str):
+            data['status'] = ModelStatus(data['status'])
+        return cls(**data)
 
 
 @dataclass
