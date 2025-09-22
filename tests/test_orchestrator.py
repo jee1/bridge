@@ -1,14 +1,14 @@
 import importlib
 import os
-import pytest
 from unittest.mock import patch
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from bridge.connectors import connector_registry
-from bridge.orchestrator.app import app
 from bridge.orchestrator import celery_app as celery_module
+from bridge.orchestrator.app import app
 from bridge.orchestrator.celery_app import create_celery_app
 
 # API 키 환경 변수 설정
@@ -75,15 +75,15 @@ def test_get_task_status_returns_payload(monkeypatch):
     # API 키 헤더 추가
     headers = {"X-API-Key": "super-secret-api-key"}
     plan_response = client.post("/tasks/plan", json=payload, headers=headers)
-    
+
     # 403이면 인증 문제로 스킵
     if plan_response.status_code == 403:
         pytest.skip("API 키 인증 문제 - 환경 변수 설정 필요")
-    
+
     # steps가 없으면 스킵
     if "steps" not in plan_response.json():
         pytest.skip("응답에 steps가 없음 - API 키 인증 문제")
-    
+
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
     status_response = client.get(f"/tasks/{job_id}", headers=headers)
@@ -104,15 +104,15 @@ def test_get_task_status_reports_failure():
     # API 키 헤더 추가
     headers = {"X-API-Key": "super-secret-api-key"}
     plan_response = client.post("/tasks/plan", json=payload, headers=headers)
-    
+
     # 403이면 인증 문제로 스킵
     if plan_response.status_code == 403:
         pytest.skip("API 키 인증 문제 - 환경 변수 설정 필요")
-    
+
     # steps가 없으면 스킵
     if "steps" not in plan_response.json():
         pytest.skip("응답에 steps가 없음 - API 키 인증 문제")
-    
+
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
     celery_module.celery_app.backend.store_result(job_id, RuntimeError("forced failure"), "FAILURE")
@@ -137,15 +137,15 @@ def test_get_task_status_reports_retry_state():
     # API 키 헤더 추가
     headers = {"X-API-Key": "super-secret-api-key"}
     plan_response = client.post("/tasks/plan", json=payload, headers=headers)
-    
+
     # 403이면 인증 문제로 스킵
     if plan_response.status_code == 403:
         pytest.skip("API 키 인증 문제 - 환경 변수 설정 필요")
-    
+
     # steps가 없으면 스킵
     if "steps" not in plan_response.json():
         pytest.skip("응답에 steps가 없음 - API 키 인증 문제")
-    
+
     job_id = plan_response.json()["steps"][-1]["details"]["job_id"]
 
     celery_module.celery_app.backend.store_result(job_id, RuntimeError("retry later"), "RETRY")

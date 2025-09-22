@@ -1,4 +1,5 @@
 """워크스페이스 RBAC 유틸리티."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

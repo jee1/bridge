@@ -1,4 +1,5 @@
 """Celery 애플리케이션 초기화."""
+
 from __future__ import annotations
 
 import os

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
-import json
 
 from bridge.utils import json as bridge_json
 

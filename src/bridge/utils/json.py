@@ -1,12 +1,13 @@
 """Custom JSON helpers for Bridge."""
+
 from __future__ import annotations
 
+import json
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable
 from uuid import UUID
-import json
 
 JsonDefault = Callable[[Any], Any]
 
@@ -52,4 +53,3 @@ def loads(s: str | bytes, *, encoding: str | None = None, **kwargs: Any) -> Any:
             encoding = "utf-8"
         s = s.decode(encoding)
     return json.loads(s, **kwargs)
-

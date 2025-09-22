@@ -1,11 +1,13 @@
 """FastAPI 기반 오케스트레이터 서비스 엔트리포인트."""
+
 from __future__ import annotations
 
 import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..logging_config import setup_logging, get_logger
+from ..logging_config import get_logger, setup_logging
 from .routers import router as tasks_router
 
 # 로깅 설정
@@ -17,7 +19,7 @@ app = FastAPI(
     description="Model Context Protocol 기반 데이터 통합 및 AI 오케스트레이션 시스템",
     version="0.1.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # CORS 설정
