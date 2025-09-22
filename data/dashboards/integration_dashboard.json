@@ -1,0 +1,18 @@
+{
+  "id": "integration_dashboard",
+  "name": "Integration Dashboard",
+  "description": "Integration test dashboard",
+  "layout_type": "grid",
+  "grid_columns": 3,
+  "grid_rows": 2,
+  "auto_refresh": true,
+  "refresh_interval": 30,
+  "theme": "default",
+  "created_at": "2025-09-22T15:46:45.724986",
+  "updated_at": "2025-09-22T15:46:45.724987",
+  "created_by": null,
+  "widgets": [
+    "cpu_widget",
+    "memory_widget"
+  ]
+}
