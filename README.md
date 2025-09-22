@@ -42,6 +42,15 @@ Bridge는 다양한 데이터 소스(PostgreSQL, MongoDB, Elasticsearch 등)에 
 - **품질 검사**: 결측값, 이상치, 일관성 검사
 - **리포트 생성**: 종합 분석 리포트 및 대시보드 생성
 
+### 🤖 머신러닝 및 AI
+
+- **시계열 분석**: ARIMA, Prophet, LSTM을 활용한 시계열 예측
+- **클러스터링**: K-means, DBSCAN, 계층적 클러스터링
+- **이상치 탐지**: Isolation Forest, One-Class SVM을 활용한 고급 이상치 탐지
+- **차원 축소**: PCA, t-SNE, UMAP을 통한 차원 축소
+- **모델 관리**: 모델 레지스트리, 버전 관리, 성능 모니터링
+- **모델 추론**: 실시간 및 배치 예측 서비스
+
 ### 🔒 엔터프라이즈 보안
 
 - **RBAC (역할 기반 접근 제어)**: 프로젝트, 커넥터, 데이터셋에 대한 세밀한 권한 관리
@@ -125,6 +134,22 @@ src/bridge/
 │   └── rbac.py         # RBAC 시스템
 ├── audit/              # 감사 로깅
 │   └── logger.py       # 감사 로거
+├── analytics/          # 분석 도구
+│   ├── core/           # 핵심 분석 기능
+│   └── utils/          # 분석 유틸리티
+├── ml/                 # 머신러닝 모듈
+│   ├── algorithms/     # ML 알고리즘
+│   │   ├── time_series.py      # 시계열 분석
+│   │   ├── anomaly_detection.py # 이상치 탐지
+│   │   ├── clustering.py       # 클러스터링
+│   │   └── dimensionality_reduction.py # 차원 축소
+│   ├── models/         # 모델 관리
+│   │   ├── registry.py         # 모델 레지스트리
+│   │   ├── inference.py        # 모델 추론
+│   │   └── versioning.py       # 모델 버전 관리
+│   └── pipelines/      # ML 파이프라인
+├── governance/         # 데이터 거버넌스
+│   └── contracts.py    # 데이터 계약 관리
 └── cli.py              # CLI 인터페이스
 ```
 
@@ -227,6 +252,24 @@ python cli.py "지역별 이탈 위험 분석" --sources mock --tools sql_execut
 [STATUS 202] {"job_id": "2f7c18af-...", "state": "PENDING", "ready": false, ...}
 [STATUS 200] {"job_id": "2f7c18af-...", "state": "SUCCESS", "ready": true, "successful": true, ...}
 [SUCCESS] 작업이 완료되었습니다.
+```
+
+### 9. ML 모델 사용 예시 (선택사항)
+
+```python
+# 시계열 분석
+from bridge.ml.algorithms.time_series import TimeSeriesAnalyzer
+
+analyzer = TimeSeriesAnalyzer()
+result = analyzer.fit_arima(data, order=(1, 1, 1))
+forecast = analyzer.forecast(result, periods=30)
+
+# 모델 관리
+from bridge.ml.models.registry import ModelRegistry
+
+registry = ModelRegistry()
+model = registry.get_model("churn_model_001")
+predictions = registry.predict(model.id, test_data)
 ```
 
 ## 🤖 AI 작업 템플릿
@@ -390,6 +433,7 @@ docker-compose -f docker-compose.dev.yml run --rm test
 
 ### 사용자 가이드
 - [사용자 가이드](docs/user-guide.md) - 각 기능별 상세한 사용 방법
+- [ML 사용 가이드](docs/ml-user-guide.md) - 머신러닝 기능 사용법
 - [API 참조 문서](docs/api-reference.md) - REST API 완전 참조
 - [MCP 설치 및 사용 가이드](docs/mcp-installation-guide.md) - MCP 서버 설치 및 클라이언트 연결 방법
 
@@ -429,9 +473,10 @@ Bridge MCP는 **엔터프라이즈 데이터를 AI와 연결하는 다리** 역�
 1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
 2. **AI 통합**: LangChain, OpenAI SDK 통합 완료
 3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료
-4. **모니터링**: Prometheus, Grafana 대시보드 구축
-5. **테스트**: 단위/통합 테스트 확장
-6. **문서화**: API 문서 자동 생성
+4. **ML 기능**: 시계열 분석, 모델 관리, 거버넌스 계약 구현 완료
+5. **모니터링**: Prometheus, Grafana 대시보드 구축
+6. **테스트**: 단위/통합 테스트 확장
+7. **문서화**: API 문서 자동 생성
 
 ## 🤝 기여하기
 

@@ -446,6 +446,7 @@ async def new_endpoint(request: TaskRequest) -> TaskResponse:
 1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료
 2. **AI 통합**: LangChain 및 OpenAI SDK 통합 완료
 3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료
+4. **ML 기능**: 시계열 분석, 모델 관리, 거버넌스 계약 구현 완료
 4. **모니터링 강화**: Prometheus, Grafana 대시보드 구축
 5. **테스트 커버리지**: 단위 테스트 및 통합 테스트 확장
 6. **문서화**: API 문서 및 사용자 가이드 작성

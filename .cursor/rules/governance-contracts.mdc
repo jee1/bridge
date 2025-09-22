@@ -1,0 +1,357 @@
+---
+description: 데이터 거버넌스 및 계약 관리 관련 규칙
+globs: src/bridge/governance/*.py
+---
+
+# 거버넌스 계약 가이드라인
+
+## 데이터 계약
+
+### DataContract 사용법
+```python
+from bridge.governance.contracts import DataContract, DataType, QualityRule
+
+# 데이터 계약 생성
+contract = DataContract(
+    id="customer_data_contract",
+    name="고객 데이터 계약",
+    version="1.0.0",
+    schema={
+        "customer_id": DataType.INTEGER,
+        "name": DataType.STRING,
+        "email": DataType.STRING,
+        "created_at": DataType.DATETIME
+    },
+    quality_rules=[
+        QualityRule(
+            field="customer_id",
+            rule_type="not_null",
+            description="고객 ID는 필수입니다"
+        ),
+        QualityRule(
+            field="email",
+            rule_type="email_format",
+            description="이메일 형식이 올바르야 합니다"
+        )
+    ]
+)
+```
+
+### 데이터 검증
+```python
+# 데이터 검증 수행
+validation_result = contract.validate_data(data)
+
+if validation_result.is_valid:
+    print("데이터가 계약을 만족합니다")
+else:
+    print(f"검증 실패: {validation_result.errors}")
+
+# 특정 필드 검증
+field_result = contract.validate_field("email", "invalid-email")
+if not field_result.is_valid:
+    print(f"이메일 검증 실패: {field_result.error}")
+```
+
+## 모델 계약
+
+### ModelContract 사용법
+```python
+from bridge.governance.contracts import ModelContract, ModelType, ModelStatus
+
+# 모델 계약 생성
+model_contract = ModelContract(
+    id="churn_model_001",
+    name="고객 이탈 예측 모델",
+    model_type=ModelType.CLASSIFICATION,
+    version="1.0.0",
+    status=ModelStatus.READY,
+    input_schema={
+        "age": DataType.INTEGER,
+        "income": DataType.FLOAT,
+        "usage_days": DataType.INTEGER
+    },
+    output_schema={
+        "churn_probability": DataType.FLOAT,
+        "prediction": DataType.INTEGER
+    },
+    performance_thresholds={
+        "accuracy": 0.80,
+        "precision": 0.75,
+        "recall": 0.70
+    }
+)
+```
+
+### 모델 검증
+```python
+# 모델 입력 검증
+input_validation = model_contract.validate_input(input_data)
+
+# 모델 출력 검증
+output_validation = model_contract.validate_output(output_data)
+
+# 성능 기준 검증
+performance_check = model_contract.check_performance(
+    accuracy=0.85,
+    precision=0.82,
+    recall=0.88
+)
+
+if performance_check.meets_thresholds:
+    print("모델이 성능 기준을 만족합니다")
+```
+
+## 품질 규칙
+
+### QualityRule 정의
+```python
+from bridge.governance.contracts import QualityRule, QualityRuleType
+
+# 다양한 품질 규칙 정의
+rules = [
+    # 필수값 검사
+    QualityRule(
+        field="customer_id",
+        rule_type=QualityRuleType.NOT_NULL,
+        description="고객 ID는 필수입니다"
+    ),
+    
+    # 범위 검사
+    QualityRule(
+        field="age",
+        rule_type=QualityRuleType.RANGE,
+        parameters={"min": 0, "max": 120},
+        description="나이는 0-120 사이여야 합니다"
+    ),
+    
+    # 형식 검사
+    QualityRule(
+        field="email",
+        rule_type=QualityRuleType.EMAIL_FORMAT,
+        description="이메일 형식이 올바르야 합니다"
+    ),
+    
+    # 정규식 검사
+    QualityRule(
+        field="phone",
+        rule_type=QualityRuleType.REGEX,
+        parameters={"pattern": r"^\d{3}-\d{4}-\d{4}$"},
+        description="전화번호 형식이 올바르야 합니다"
+    ),
+    
+    # 유니크 검사
+    QualityRule(
+        field="customer_id",
+        rule_type=QualityRuleType.UNIQUE,
+        description="고객 ID는 고유해야 합니다"
+    )
+]
+```
+
+### 품질 규칙 실행
+```python
+# 개별 규칙 실행
+for rule in rules:
+    result = rule.validate(data)
+    if not result.is_valid:
+        print(f"규칙 위반: {rule.description} - {result.error}")
+
+# 모든 규칙 일괄 실행
+validation_result = contract.validate_all_rules(data)
+```
+
+## 데이터 변환 규칙
+
+### TransformationRule 정의
+```python
+from bridge.governance.contracts import TransformationRule, TransformationType
+
+# 데이터 변환 규칙 정의
+transformation_rules = [
+    # 데이터 타입 변환
+    TransformationRule(
+        field="age",
+        transformation_type=TransformationType.CAST,
+        parameters={"target_type": "integer"},
+        description="나이를 정수형으로 변환"
+    ),
+    
+    # 데이터 정규화
+    TransformationRule(
+        field="income",
+        transformation_type=TransformationType.NORMALIZE,
+        parameters={"method": "minmax"},
+        description="소득을 0-1 범위로 정규화"
+    ),
+    
+    # 데이터 인코딩
+    TransformationRule(
+        field="category",
+        transformation_type=TransformationType.ONE_HOT_ENCODE,
+        description="카테고리를 원핫 인코딩"
+    ),
+    
+    # 데이터 마스킹
+    TransformationRule(
+        field="ssn",
+        transformation_type=TransformationType.MASK,
+        parameters={"mask_char": "*", "show_last": 4},
+        description="주민등록번호 마스킹"
+    )
+]
+```
+
+### 데이터 변환 실행
+```python
+# 변환 규칙 적용
+transformed_data = contract.apply_transformations(data, transformation_rules)
+
+# 개별 변환 실행
+for rule in transformation_rules:
+    transformed_field = rule.transform(data[rule.field])
+    data[rule.field] = transformed_field
+```
+
+## 계약 버전 관리
+
+### 계약 버전 관리
+```python
+# 새 버전 생성
+new_version = contract.create_version("1.1.0", {
+    "description": "이메일 검증 규칙 추가",
+    "changes": ["email_format 규칙 추가"]
+})
+
+# 버전 비교
+comparison = contract.compare_versions("1.0.0", "1.1.0")
+
+# 버전 롤백
+contract.rollback_to_version("1.0.0")
+
+# 버전 히스토리 조회
+history = contract.get_version_history()
+```
+
+## 계약 검증 및 모니터링
+
+### 계약 준수 모니터링
+```python
+# 계약 준수율 계산
+compliance_rate = contract.calculate_compliance_rate(data)
+
+# 위반 사항 추적
+violations = contract.track_violations(data)
+
+# 계약 위반 알림
+if compliance_rate < 0.95:
+    contract.send_violation_alert(
+        message=f"계약 준수율이 {compliance_rate:.2%}로 낮습니다"
+    )
+```
+
+### 계약 성능 모니터링
+```python
+# 계약 검증 성능 측정
+performance_metrics = contract.measure_performance(data)
+
+# 느린 규칙 식별
+slow_rules = contract.identify_slow_rules(threshold=1.0)  # 1초 이상
+
+# 성능 최적화 제안
+optimization_suggestions = contract.suggest_optimizations()
+```
+
+## 에러 처리
+
+### 계약 검증 에러 처리
+```python
+try:
+    validation_result = contract.validate_data(data)
+    if not validation_result.is_valid:
+        # 위반 사항 로깅
+        logger.warning(f"계약 위반: {validation_result.errors}")
+        
+        # 데이터 수정 시도
+        corrected_data = contract.auto_correct(data)
+        validation_result = contract.validate_data(corrected_data)
+        
+except ContractValidationError as e:
+    logger.error(f"계약 검증 중 오류 발생: {e}")
+    # 대체 검증 방법 사용
+    fallback_result = contract.fallback_validation(data)
+```
+
+### 모델 계약 에러 처리
+```python
+try:
+    model_contract.validate_input(input_data)
+except ModelInputValidationError as e:
+    logger.error(f"모델 입력 검증 실패: {e}")
+    # 입력 데이터 전처리
+    preprocessed_input = model_contract.preprocess_input(input_data)
+    model_contract.validate_input(preprocessed_input)
+```
+
+## 성능 최적화
+
+### 계약 검증 최적화
+```python
+# 규칙 우선순위 설정
+contract.set_rule_priority([
+    ("customer_id", 1),  # 가장 중요한 규칙
+    ("email", 2),
+    ("age", 3)
+])
+
+# 병렬 검증 활성화
+contract.enable_parallel_validation(workers=4)
+
+# 캐싱 활성화
+contract.enable_validation_caching()
+```
+
+### 메모리 효율적인 처리
+```python
+# 스트리밍 검증
+for chunk in contract.stream_validate(data_stream, chunk_size=1000):
+    if not chunk.is_valid:
+        logger.warning(f"청크 검증 실패: {chunk.errors}")
+```
+
+## 보안 및 권한 관리
+
+### 계약 접근 권한
+```python
+# 계약 접근 권한 설정
+contract.set_access_permissions({
+    "read": ["data_analyst", "data_scientist"],
+    "write": ["data_engineer"],
+    "admin": ["data_governance_team"]
+})
+
+# 권한 확인
+has_permission = contract.check_permission(
+    user="data_analyst",
+    action="read"
+)
+```
+
+### 민감한 데이터 보호
+```python
+# 민감한 필드 마스킹
+sensitive_fields = ["ssn", "credit_card", "bank_account"]
+contract.set_sensitive_fields(sensitive_fields)
+
+# 데이터 마스킹 적용
+masked_data = contract.apply_data_masking(data)
+```
+
+## 주의사항
+
+1. **계약 설계**: 명확하고 실행 가능한 계약 정의
+2. **성능 고려**: 대용량 데이터 처리를 위한 최적화
+3. **에러 처리**: 계약 위반 시 적절한 대응 방안
+4. **보안**: 민감한 데이터 보호 및 접근 권한 관리
+5. **문서화**: 계약 변경사항 및 사용법 문서화
+6. **모니터링**: 계약 준수율 및 성능 지속적 모니터링

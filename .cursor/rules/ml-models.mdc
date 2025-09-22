@@ -1,0 +1,333 @@
+---
+description: ML 모델 관리 및 레지스트리 관련 규칙
+globs: src/bridge/ml/models/*.py
+---
+
+# ML 모델 관리 가이드라인
+
+## 모델 레지스트리
+
+### ModelRegistry 사용법
+```python
+from bridge.ml.models.registry import ModelRegistry
+from bridge.governance.contracts import ModelContract, ModelType, ModelStatus
+
+# 모델 레지스트리 초기화
+registry = ModelRegistry(storage_path="models")
+
+# 모델 등록
+model_contract = ModelContract(
+    id="model_001",
+    name="Customer Churn Prediction",
+    model_type=ModelType.CLASSIFICATION,
+    version="1.0.0",
+    status=ModelStatus.READY,
+    metadata={
+        "algorithm": "RandomForest",
+        "accuracy": 0.85,
+        "features": ["age", "income", "usage_days"]
+    }
+)
+
+registry.register_model(model_contract)
+```
+
+### 모델 조회 및 관리
+```python
+# 모델 조회
+model = registry.get_model("model_001")
+
+# 모든 모델 목록 조회
+models = registry.list_models()
+
+# 모델 검색
+search_results = registry.search_models(
+    model_type=ModelType.CLASSIFICATION,
+    status=ModelStatus.READY
+)
+
+# 모델 업데이트
+model.metadata["accuracy"] = 0.87
+registry.update_model(model)
+
+# 모델 삭제
+registry.delete_model("model_001")
+```
+
+## 모델 버전 관리
+
+### ModelVersioning 사용법
+```python
+from bridge.ml.models.versioning import ModelVersioning
+
+versioning = ModelVersioning(registry)
+
+# 새 버전 생성
+new_version = versioning.create_version(
+    model_id="model_001",
+    version="1.1.0",
+    description="Improved accuracy with feature engineering"
+)
+
+# 버전 비교
+comparison = versioning.compare_versions(
+    model_id="model_001",
+    version1="1.0.0",
+    version2="1.1.0"
+)
+
+# 최신 버전 조회
+latest = versioning.get_latest_version("model_001")
+
+# 버전 롤백
+versioning.rollback_to_version("model_001", "1.0.0")
+```
+
+## 모델 추론
+
+### ModelInference 사용법
+```python
+from bridge.ml.models.inference import ModelInference
+
+inference = ModelInference(registry)
+
+# 모델 로드
+model = inference.load_model("model_001", version="1.0.0")
+
+# 예측 수행
+predictions = inference.predict(
+    model_id="model_001",
+    data=test_data,
+    version="1.0.0"
+)
+
+# 배치 예측
+batch_predictions = inference.batch_predict(
+    model_id="model_001",
+    data_list=[data1, data2, data3]
+)
+
+# 실시간 예측
+stream_predictions = inference.stream_predict(
+    model_id="model_001",
+    data_stream=data_stream
+)
+```
+
+## 모델 성능 모니터링
+
+### 성능 메트릭 추적
+```python
+# 모델 성능 기록
+registry.record_performance(
+    model_id="model_001",
+    metrics={
+        "accuracy": 0.85,
+        "precision": 0.82,
+        "recall": 0.88,
+        "f1_score": 0.85
+    },
+    timestamp=datetime.now()
+)
+
+# 성능 히스토리 조회
+performance_history = registry.get_performance_history("model_001")
+
+# 성능 알림 설정
+registry.set_performance_threshold(
+    model_id="model_001",
+    metric="accuracy",
+    threshold=0.80,
+    alert=True
+)
+```
+
+## 모델 배포
+
+### 배포 상태 관리
+```python
+# 모델 배포
+registry.deploy_model("model_001", environment="production")
+
+# 배포 상태 확인
+deployment_status = registry.get_deployment_status("model_001")
+
+# 모델 중지
+registry.undeploy_model("model_001")
+
+# 배포 히스토리 조회
+deployment_history = registry.get_deployment_history("model_001")
+```
+
+## 모델 메타데이터 관리
+
+### 메타데이터 구조
+```python
+# 표준 메타데이터 구조
+metadata = {
+    "algorithm": "RandomForest",
+    "hyperparameters": {
+        "n_estimators": 100,
+        "max_depth": 10,
+        "random_state": 42
+    },
+    "training_data": {
+        "size": 10000,
+        "features": ["age", "income", "usage_days"],
+        "target": "churn"
+    },
+    "performance": {
+        "accuracy": 0.85,
+        "precision": 0.82,
+        "recall": 0.88,
+        "f1_score": 0.85
+    },
+    "created_at": "2024-01-01T00:00:00Z",
+    "created_by": "data_scientist",
+    "tags": ["churn", "customer", "classification"]
+}
+```
+
+### 메타데이터 검색
+```python
+# 태그로 검색
+tagged_models = registry.search_by_tags(["churn", "customer"])
+
+# 성능 기준으로 검색
+high_performance_models = registry.search_by_performance(
+    metric="accuracy",
+    min_value=0.80
+)
+
+# 알고리즘으로 검색
+rf_models = registry.search_by_algorithm("RandomForest")
+```
+
+## 모델 아티팩트 관리
+
+### 모델 파일 저장
+```python
+# 모델 파일 저장
+registry.save_model_artifact(
+    model_id="model_001",
+    version="1.0.0",
+    artifact_path="models/model_001_v1.0.0.pkl",
+    artifact_type="pickle"
+)
+
+# 모델 파일 로드
+artifact = registry.load_model_artifact("model_001", "1.0.0")
+
+# 아티팩트 목록 조회
+artifacts = registry.list_model_artifacts("model_001")
+```
+
+## 모델 라이프사이클 관리
+
+### 모델 상태 전환
+```python
+# 모델 상태 전환
+registry.update_model_status("model_001", ModelStatus.TRAINING)
+registry.update_model_status("model_001", ModelStatus.READY)
+registry.update_model_status("model_001", ModelStatus.DEPLOYED)
+registry.update_model_status("model_001", ModelStatus.DEPRECATED)
+
+# 상태별 모델 조회
+training_models = registry.get_models_by_status(ModelStatus.TRAINING)
+ready_models = registry.get_models_by_status(ModelStatus.READY)
+deployed_models = registry.get_models_by_status(ModelStatus.DEPLOYED)
+```
+
+### 모델 승인 워크플로우
+```python
+# 모델 승인 요청
+registry.request_approval("model_001", "1.0.0", approver="ml_lead")
+
+# 모델 승인
+registry.approve_model("model_001", "1.0.0", approver="ml_lead")
+
+# 모델 거부
+registry.reject_model("model_001", "1.0.0", reason="성능 기준 미달")
+```
+
+## 에러 처리
+
+### 일반적인 에러 처리 패턴
+```python
+try:
+    model = registry.get_model("model_001")
+    if not model:
+        raise ValueError("모델을 찾을 수 없습니다")
+except Exception as e:
+    logger.error(f"모델 조회 중 오류 발생: {e}")
+    # 대체 모델 사용
+    fallback_model = registry.get_fallback_model()
+```
+
+### 모델 로드 실패 처리
+```python
+try:
+    model = inference.load_model("model_001")
+except ModelLoadError as e:
+    logger.error(f"모델 로드 실패: {e}")
+    # 이전 버전으로 롤백
+    model = inference.load_model("model_001", version="0.9.0")
+```
+
+## 성능 최적화
+
+### 모델 캐싱
+```python
+# 모델 캐싱 활성화
+registry.enable_model_caching("model_001")
+
+# 캐시된 모델 사용
+cached_model = registry.get_cached_model("model_001")
+
+# 캐시 무효화
+registry.invalidate_cache("model_001")
+```
+
+### 배치 처리 최적화
+```python
+# 배치 크기 최적화
+optimal_batch_size = inference.find_optimal_batch_size("model_001")
+
+# 배치 예측 최적화
+predictions = inference.optimized_batch_predict(
+    model_id="model_001",
+    data=test_data,
+    batch_size=optimal_batch_size
+)
+```
+
+## 보안 및 권한 관리
+
+### 모델 접근 권한
+```python
+# 모델 접근 권한 설정
+registry.set_model_permissions(
+    model_id="model_001",
+    permissions={
+        "read": ["data_scientist", "ml_engineer"],
+        "write": ["data_scientist"],
+        "deploy": ["ml_lead"]
+    }
+)
+
+# 권한 확인
+has_permission = registry.check_permission(
+    model_id="model_001",
+    user="data_scientist",
+    action="read"
+)
+```
+
+## 주의사항
+
+1. **모델 버전 관리**: 항상 의미 있는 버전 번호 사용
+2. **메타데이터 일관성**: 표준 메타데이터 구조 유지
+3. **성능 모니터링**: 정기적인 모델 성능 검사
+4. **보안**: 민감한 모델은 적절한 권한 설정
+5. **백업**: 중요한 모델은 정기적으로 백업
+6. **문서화**: 모델 사용법과 제약사항 문서화

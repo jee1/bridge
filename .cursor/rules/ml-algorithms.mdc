@@ -1,0 +1,184 @@
+---
+description: ML 알고리즘 및 시계열 분석 관련 규칙
+globs: src/bridge/ml/algorithms/*.py
+---
+
+# ML 알고리즘 가이드라인
+
+## 시계열 분석
+
+### TimeSeriesAnalyzer 사용법
+```python
+from bridge.ml.algorithms.time_series import TimeSeriesAnalyzer, TimeSeriesResult, ForecastResult
+
+# 시계열 분석기 초기화
+analyzer = TimeSeriesAnalyzer()
+
+# 정상성 검사
+is_stationary, adf_stat, adf_pvalue = analyzer.analyze_stationarity(data)
+
+# ARIMA 모델 훈련
+result = analyzer.fit_arima(data, order=(1, 1, 1))
+
+# Prophet 모델 훈련
+result = analyzer.fit_prophet(data, seasonality_mode='multiplicative')
+
+# LSTM 모델 훈련
+result = analyzer.fit_lstm(data, sequence_length=30, epochs=100)
+
+# 예측 수행
+forecast = analyzer.forecast(result, periods=30)
+```
+
+### 시계열 분석 결과 처리
+```python
+# 결과 검증
+if result.is_stationary:
+    print("데이터가 정상성을 만족합니다")
+
+# 신뢰구간 확인
+if result.confidence_intervals:
+    lower, upper = result.confidence_intervals
+    print(f"신뢰구간: {lower} ~ {upper}")
+
+# 계절성 성분 확인
+if result.seasonal_components:
+    for component, values in result.seasonal_components.items():
+        print(f"{component}: {values}")
+```
+
+## 이상치 탐지
+
+### AnomalyDetector 사용법
+```python
+from bridge.ml.algorithms.anomaly_detection import AnomalyDetector
+
+detector = AnomalyDetector()
+
+# IQR 방법으로 이상치 탐지
+anomalies = detector.detect_iqr(data, threshold=1.5)
+
+# Z-score 방법으로 이상치 탐지
+anomalies = detector.detect_zscore(data, threshold=3.0)
+
+# Isolation Forest로 이상치 탐지
+anomalies = detector.detect_isolation_forest(data, contamination=0.1)
+```
+
+## 클러스터링
+
+### ClusteringAnalyzer 사용법
+```python
+from bridge.ml.algorithms.clustering import ClusteringAnalyzer
+
+clustering = ClusteringAnalyzer()
+
+# K-means 클러스터링
+clusters = clustering.kmeans(data, n_clusters=3)
+
+# DBSCAN 클러스터링
+clusters = clustering.dbscan(data, eps=0.5, min_samples=5)
+
+# 계층적 클러스터링
+clusters = clustering.hierarchical(data, n_clusters=3)
+```
+
+## 차원 축소
+
+### DimensionalityReducer 사용법
+```python
+from bridge.ml.algorithms.dimensionality_reduction import DimensionalityReducer
+
+reducer = DimensionalityReducer()
+
+# PCA 차원 축소
+reduced_data = reducer.pca(data, n_components=2)
+
+# t-SNE 차원 축소
+reduced_data = reducer.tsne(data, n_components=2)
+
+# UMAP 차원 축소
+reduced_data = reducer.umap(data, n_components=2)
+```
+
+## 데이터 전처리
+
+### 시계열 데이터 전처리
+```python
+# 결측값 처리
+cleaned_data = analyzer.handle_missing_values(data, method='interpolate')
+
+# 이상치 제거
+cleaned_data = analyzer.remove_outliers(data, method='iqr')
+
+# 정규화
+normalized_data = analyzer.normalize(data, method='minmax')
+
+# 차분 (정상성 확보)
+differenced_data = analyzer.difference(data, periods=1)
+```
+
+## 모델 평가
+
+### 시계열 모델 평가
+```python
+# 교차 검증
+cv_scores = analyzer.cross_validate(data, model_type='arima', cv_folds=5)
+
+# 예측 정확도 평가
+accuracy = analyzer.evaluate_forecast(actual, predicted)
+
+# 모델 메트릭 확인
+if result.model_metrics:
+    for metric, value in result.model_metrics.items():
+        print(f"{metric}: {value}")
+```
+
+## 에러 처리
+
+### 일반적인 에러 처리 패턴
+```python
+try:
+    result = analyzer.fit_arima(data, order=(1, 1, 1))
+    if not result:
+        raise ValueError("ARIMA 모델 훈련 실패")
+except Exception as e:
+    logger.error(f"시계열 분석 중 오류 발생: {e}")
+    # 대체 방법 시도
+    result = analyzer.fit_prophet(data)
+```
+
+## 성능 최적화
+
+### 메모리 효율적인 처리
+```python
+# 대용량 데이터 처리
+for chunk in analyzer.process_in_chunks(data, chunk_size=1000):
+    result = analyzer.fit_arima(chunk)
+    # 결과 저장
+```
+
+### 병렬 처리
+```python
+# 여러 모델 동시 훈련
+results = analyzer.fit_multiple_models(data, models=['arima', 'prophet', 'lstm'])
+```
+
+## 모델 저장 및 로드
+
+### 모델 직렬화
+```python
+# 모델 저장
+analyzer.save_model(result, 'models/arima_model.pkl')
+
+# 모델 로드
+loaded_model = analyzer.load_model('models/arima_model.pkl')
+```
+
+## 주의사항
+
+1. **데이터 품질**: 시계열 분석 전에 데이터 품질을 반드시 확인
+2. **정상성 검사**: ARIMA 모델 사용 전에 정상성 검사 필수
+3. **계절성 고려**: 계절성이 있는 데이터는 Prophet 모델 권장
+4. **메모리 관리**: 대용량 데이터는 청크 단위로 처리
+5. **모델 검증**: 교차 검증을 통한 모델 성능 검증 필수

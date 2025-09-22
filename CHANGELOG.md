@@ -17,6 +17,9 @@
 - MCP 도구 확장 구현
 - 개발/QA/PR/배포 단계별 테스트 스크립트
 - Bridge 프로젝트 명령어 도움말 시스템
+- **ML 알고리즘 모듈**: 시계열 분석, 이상치 탐지, 클러스터링, 차원 축소
+- **ML 모델 관리**: 모델 레지스트리, 버전 관리, 추론 서비스
+- **거버넌스 계약**: 데이터 계약, 모델 계약, 품질 규칙 관리
 
 ### Changed
 
@@ -33,6 +36,9 @@
 - Bridge 문서 업데이트 및 사용자 가이드 추가
 - MCP 서버 문서 내용 수정 및 통합 서버 설명 업데이트
 - Bridge Analytics MVP 문서 및 마일스톤 로드맵 작성
+- **ML 관련 Cursor Rules 추가**: ml-algorithms.mdc, ml-models.mdc, governance-contracts.mdc
+- **README.md 갱신**: ML 기능 섹션 추가, 프로젝트 구조에 ML 모듈 반영
+- **CHANGELOG.md 갱신**: ML 기능 추가 기록
 
 ## [0.1.0] - Unreleased
 

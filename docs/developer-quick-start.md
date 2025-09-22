@@ -25,6 +25,22 @@ src/bridge/
 │   └── rbac.py         # RBAC 시스템
 ├── audit/              # 감사 로깅
 │   └── logger.py       # 감사 로거
+├── analytics/          # 분석 도구
+│   ├── core/           # 핵심 분석 기능
+│   └── utils/          # 분석 유틸리티
+├── ml/                 # 머신러닝 모듈
+│   ├── algorithms/     # ML 알고리즘
+│   │   ├── time_series.py      # 시계열 분석
+│   │   ├── anomaly_detection.py # 이상치 탐지
+│   │   ├── clustering.py       # 클러스터링
+│   │   └── dimensionality_reduction.py # 차원 축소
+│   ├── models/         # 모델 관리
+│   │   ├── registry.py         # 모델 레지스트리
+│   │   ├── inference.py        # 모델 추론
+│   │   └── versioning.py       # 모델 버전 관리
+│   └── pipelines/      # ML 파이프라인
+├── governance/         # 데이터 거버넌스
+│   └── contracts.py    # 데이터 계약 관리
 └── cli.py              # CLI 인터페이스
 ```
 
