@@ -8,6 +8,12 @@
 
 ### Added
 
+- **CA 마일스톤 3.2: 고급 통계 분석 및 시각화 구현**
+  - **AdvancedStatistics**: 고급 통계 분석 모듈 (기술 통계, 상관관계, 분포 분석)
+  - **AdvancedVisualization**: 인터랙티브 차트 및 시각화 모듈
+  - **StatisticalTests**: 통계적 검정 모듈 (가설검정, A/B 테스트, 회귀분석)
+  - **TimeSeriesAnalysis**: 시계열 분석 및 예측 모듈
+  - **MCP 도구 확장**: advanced_statistics, interactive_charts, statistical_tests, time_series_analysis
 - **CA 마일스톤 3.1: 통합 데이터 분석 레이어**
   - **DataUnifier**: 다중 소스 데이터를 표준 테이블 형태로 통합
   - **SchemaMapper**: 스키마 매핑 및 정규화 시스템

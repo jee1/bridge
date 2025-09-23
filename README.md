@@ -60,6 +60,14 @@ Bridge는 다양한 데이터 소스(PostgreSQL, MongoDB, Elasticsearch 등)에 
 - **IntegratedDataLayer**: 통합 데이터 분석 레이어 메인 클래스
 - **MCP 도구 확장**: data_unifier, schema_mapper, type_converter, streaming_processor, integrated_data_layer
 
+### 📊 고급 통계 분석 및 시각화
+
+- **AdvancedStatistics**: 고급 통계 분석 모듈 (기술 통계, 상관관계, 분포 분석)
+- **AdvancedVisualization**: 인터랙티브 차트 및 시각화 모듈
+- **StatisticalTests**: 통계적 검정 모듈 (가설검정, A/B 테스트, 회귀분석)
+- **TimeSeriesAnalysis**: 시계열 분석 및 예측 모듈
+- **MCP 도구 확장**: advanced_statistics, interactive_charts, statistical_tests, time_series_analysis
+
 ### 🔒 엔터프라이즈 보안
 
 - **RBAC (역할 기반 접근 제어)**: 프로젝트, 커넥터, 데이터셋에 대한 세밀한 권한 관리
@@ -149,7 +157,11 @@ src/bridge/
 │   │   ├── schema_mapper.py       # 스키마 매핑
 │   │   ├── type_converter.py      # 타입 변환
 │   │   ├── streaming_processor.py # 스트리밍 처리
-│   │   └── integrated_data_layer.py # 통합 데이터 레이어
+│   │   ├── integrated_data_layer.py # 통합 데이터 레이어
+│   │   ├── advanced_statistics.py # 고급 통계 분석
+│   │   ├── advanced_visualization.py # 고급 시각화
+│   │   ├── statistical_tests.py   # 통계적 검정
+│   │   └── time_series_analysis.py # 시계열 분석
 │   └── utils/          # 분석 유틸리티
 ├── ml/                 # 머신러닝 모듈
 │   ├── algorithms/     # ML 알고리즘
@@ -311,6 +323,34 @@ unified_data = layer.integrate_data_sources(
 # 데이터 요약 정보
 summary = layer.get_data_summary()
 print(f"통합된 데이터: {summary}")
+```
+
+### 11. 고급 통계 분석 및 시각화 사용 예시 (선택사항)
+
+```python
+# 고급 통계 분석
+from bridge.analytics.core import AdvancedStatistics, AdvancedVisualization
+
+# 고급 통계 분석기 초기화
+stats_analyzer = AdvancedStatistics()
+viz = AdvancedVisualization()
+
+# 기술 통계 분석
+descriptive = stats_analyzer.descriptive_statistics(df, ["value1", "value2"])
+
+# 상관관계 분석
+correlation = stats_analyzer.correlation_analysis(df, ["value1", "value2"])
+
+# 고급 차트 생성
+chart = viz.create_advanced_chart(
+    df, "scatter", "value1", "value2", 
+    title="Value1 vs Value2 Analysis"
+)
+
+# 통계적 플롯 생성
+statistical_plots = viz.create_statistical_plots(
+    df, "value1", ["histogram", "qq", "box"]
+)
 ```
 
 ## 🤖 AI 작업 템플릿
@@ -476,6 +516,7 @@ docker-compose -f docker-compose.dev.yml run --rm test
 - [사용자 가이드](docs/user-guide.md) - 각 기능별 상세한 사용 방법
 - [ML 사용 가이드](docs/ml-user-guide.md) - 머신러닝 기능 사용법
 - [통합 데이터 분석 가이드](docs/integrated-data-layer-guide.md) - 통합 데이터 분석 레이어 사용법
+- [고급 통계 분석 가이드](docs/advanced-analytics-guide.md) - 고급 통계 분석 및 시각화 사용법
 - [API 참조 문서](docs/api-reference.md) - REST API 완전 참조
 - [MCP 설치 및 사용 가이드](docs/mcp-installation-guide.md) - MCP 서버 설치 및 클라이언트 연결 방법
 
@@ -517,6 +558,7 @@ Bridge MCP는 **엔터프라이즈 데이터를 AI와 연결하는 다리** 역�
 3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료
 4. **ML 기능**: 시계열 분석, 모델 관리, 거버넌스 계약 구현 완료
 5. **통합 데이터 분석 레이어**: CA 마일스톤 3.1 구현 완료
+6. **고급 통계 분석 및 시각화**: CA 마일스톤 3.2 구현 완료
 5. **모니터링**: Prometheus, Grafana 대시보드 구축
 6. **테스트**: 단위/통합 테스트 확장
 7. **문서화**: API 문서 자동 생성

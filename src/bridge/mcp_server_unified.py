@@ -553,6 +553,90 @@ class UnifiedBridgeMCPServer:
                     "required": ["action"],
                 },
             },
+            # CA 마일스톤 3.2: 고급 통계 분석 및 시각화 도구들
+            {
+                "name": "advanced_statistics",
+                "description": "고급 통계 분석 수행 (기술 통계, 상관관계, 분포 분석)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "analysis_type": {
+                            "type": "string",
+                            "enum": ["descriptive", "correlation", "distribution", "summary"],
+                            "description": "분석 유형"
+                        },
+                        "columns": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "분석할 컬럼 목록"
+                        }
+                    },
+                    "required": ["data", "analysis_type"]
+                }
+            },
+            {
+                "name": "interactive_charts",
+                "description": "인터랙티브 차트 및 시각화 생성",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "시각화할 데이터"},
+                        "chart_type": {
+                            "type": "string",
+                            "enum": ["bar", "line", "scatter", "histogram", "box", "heatmap"],
+                            "description": "차트 유형"
+                        },
+                        "x_column": {"type": "string", "description": "X축 컬럼명"},
+                        "y_column": {"type": "string", "description": "Y축 컬럼명"},
+                        "hue_column": {"type": "string", "description": "색상 구분 컬럼명"},
+                        "title": {"type": "string", "description": "차트 제목"},
+                        "config": {"type": "object", "description": "차트 설정"}
+                    },
+                    "required": ["data", "chart_type"]
+                }
+            },
+            {
+                "name": "statistical_tests",
+                "description": "통계적 검정 수행 (가설검정, A/B 테스트, 회귀분석)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "test_type": {
+                            "type": "string",
+                            "enum": ["t_test", "chi_square", "anova", "regression", "ab_test"],
+                            "description": "검정 유형"
+                        },
+                        "x_column": {"type": "string", "description": "X 변수 컬럼명"},
+                        "y_column": {"type": "string", "description": "Y 변수 컬럼명"},
+                        "group_column": {"type": "string", "description": "그룹 변수 컬럼명"},
+                        "alpha": {"type": "number", "description": "유의수준 (기본값: 0.05)"}
+                    },
+                    "required": ["data", "test_type"]
+                }
+            },
+            {
+                "name": "time_series_analysis",
+                "description": "시계열 분석 및 예측 수행",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "time_column": {"type": "string", "description": "시간 컬럼명"},
+                        "value_column": {"type": "string", "description": "값 컬럼명"},
+                        "analysis_type": {
+                            "type": "string",
+                            "enum": ["decompose", "trend", "seasonality", "forecast", "anomalies"],
+                            "description": "분석 유형"
+                        },
+                        "method": {"type": "string", "description": "분석 방법"},
+                        "forecast_periods": {"type": "integer", "description": "예측 기간"},
+                        "threshold": {"type": "number", "description": "임계값"}
+                    },
+                    "required": ["data", "time_column", "value_column", "analysis_type"]
+                }
+            },
         ]
 
     def _get_env(self, key: str, default: str) -> str:
@@ -675,6 +759,15 @@ class UnifiedBridgeMCPServer:
                 return await self._streaming_processor(arguments)
             elif tool_name == "integrated_data_layer":
                 return await self._integrated_data_layer(arguments)
+            # CA 마일스톤 3.2: 고급 통계 분석 및 시각화 도구들
+            elif tool_name == "advanced_statistics":
+                return await self._advanced_statistics(arguments)
+            elif tool_name == "interactive_charts":
+                return await self._interactive_charts(arguments)
+            elif tool_name == "statistical_tests":
+                return await self._statistical_tests(arguments)
+            elif tool_name == "time_series_analysis":
+                return await self._time_series_analysis(arguments)
             else:
                 return {
                     "success": False,
@@ -2071,6 +2164,184 @@ class UnifiedBridgeMCPServer:
             await self.run_sdk_mode()
         else:
             await self.run_direct_mode()
+
+
+    # CA 마일스톤 3.2: 고급 통계 분석 및 시각화 도구 핸들러들
+    async def _advanced_statistics(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """고급 통계 분석 도구"""
+        try:
+            from bridge.analytics.core import AdvancedStatistics, UnifiedDataFrame
+
+            data = args.get("data", {})
+            analysis_type = args.get("analysis_type", "descriptive")
+            columns = args.get("columns", [])
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+
+            # AdvancedStatistics 인스턴스 생성
+            analyzer = AdvancedStatistics()
+
+            # 분석 유형에 따른 처리
+            if analysis_type == "descriptive":
+                result = analyzer.descriptive_statistics(df, columns)
+            elif analysis_type == "correlation":
+                result = analyzer.correlation_analysis(df, columns)
+            elif analysis_type == "distribution":
+                result = analyzer.distribution_analysis(df, columns)
+            elif analysis_type == "summary":
+                result = analyzer.comprehensive_summary(df, columns)
+            else:
+                return {"success": False, "error": f"지원하지 않는 분석 유형: {analysis_type}"}
+
+            return {
+                "success": True,
+                "analysis_type": analysis_type,
+                "result": result,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns},
+            }
+
+        except Exception as e:
+            logger.error(f"고급 통계 분석 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _interactive_charts(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """인터랙티브 차트 생성 도구"""
+        try:
+            from bridge.analytics.core import AdvancedVisualization, UnifiedDataFrame
+
+            data = args.get("data", {})
+            chart_type = args.get("chart_type", "bar")
+            x_column = args.get("x_column")
+            y_column = args.get("y_column")
+            hue_column = args.get("hue_column")
+            title = args.get("title", f"{chart_type.title()} Chart")
+            config = args.get("config", {})
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+
+            # AdvancedVisualization 인스턴스 생성
+            viz = AdvancedVisualization()
+
+            # 차트 생성
+            chart_data = viz.create_interactive_chart(
+                df, chart_type, x_column, y_column, hue_column, title, config
+            )
+
+            return {
+                "success": True,
+                "chart_type": chart_type,
+                "title": title,
+                "chart_data": chart_data,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns},
+            }
+
+        except Exception as e:
+            logger.error(f"인터랙티브 차트 생성 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _statistical_tests(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """통계적 검정 도구"""
+        try:
+            from bridge.analytics.core import StatisticalTests, UnifiedDataFrame
+
+            data = args.get("data", {})
+            test_type = args.get("test_type", "t_test")
+            x_column = args.get("x_column")
+            y_column = args.get("y_column")
+            group_column = args.get("group_column")
+            alpha = args.get("alpha", 0.05)
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+
+            # StatisticalTests 인스턴스 생성
+            tester = StatisticalTests()
+
+            # 검정 유형에 따른 처리
+            if test_type == "t_test":
+                result = tester.t_test(df, x_column, y_column, alpha)
+            elif test_type == "chi_square":
+                result = tester.chi_square_test(df, x_column, y_column, alpha)
+            elif test_type == "anova":
+                result = tester.anova_test(df, x_column, group_column, alpha)
+            elif test_type == "regression":
+                result = tester.regression_analysis(df, x_column, y_column, alpha)
+            elif test_type == "ab_test":
+                result = tester.ab_test(df, x_column, y_column, group_column, alpha)
+            else:
+                return {"success": False, "error": f"지원하지 않는 검정 유형: {test_type}"}
+
+            return {
+                "success": True,
+                "test_type": test_type,
+                "result": result,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns},
+            }
+
+        except Exception as e:
+            logger.error(f"통계적 검정 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _time_series_analysis(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """시계열 분석 도구"""
+        try:
+            from bridge.analytics.core import TimeSeriesAnalysis, UnifiedDataFrame
+
+            data = args.get("data", {})
+            time_column = args.get("time_column")
+            value_column = args.get("value_column")
+            analysis_type = args.get("analysis_type", "decompose")
+            method = args.get("method")
+            forecast_periods = args.get("forecast_periods", 12)
+            threshold = args.get("threshold", 3.0)
+
+            if not time_column or not value_column:
+                return {"success": False, "error": "time_column과 value_column이 필요합니다"}
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                df = UnifiedDataFrame(data)
+            else:
+                df = data
+
+            # TimeSeriesAnalysis 인스턴스 생성
+            analyzer = TimeSeriesAnalysis()
+
+            # 분석 유형에 따른 처리
+            if analysis_type == "decompose":
+                result = analyzer.decompose_time_series(df, time_column, value_column, method)
+            elif analysis_type == "trend":
+                result = analyzer.detect_trend(df, time_column, value_column, method)
+            elif analysis_type == "seasonality":
+                result = analyzer.detect_seasonality(df, time_column, value_column)
+            elif analysis_type == "forecast":
+                result = analyzer.forecast_time_series(df, time_column, value_column, forecast_periods, method)
+            elif analysis_type == "anomalies":
+                result = analyzer.analyze_anomalies(df, time_column, value_column, method, threshold)
+            else:
+                return {"success": False, "error": f"지원하지 않는 분석 유형: {analysis_type}"}
+
+            return {
+                "success": True,
+                "analysis_type": analysis_type,
+                "result": result,
+                "data_shape": {"rows": df.num_rows, "columns": df.num_columns},
+            }
+
+        except Exception as e:
+            logger.error(f"시계열 분석 실패: {e}")
+            return {"success": False, "error": str(e)}
 
 
 def run():

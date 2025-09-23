@@ -31,7 +31,11 @@ src/bridge/
 │   │   ├── schema_mapper.py       # 스키마 매핑
 │   │   ├── type_converter.py      # 타입 변환
 │   │   ├── streaming_processor.py # 스트리밍 처리
-│   │   └── integrated_data_layer.py # 통합 데이터 레이어
+│   │   ├── integrated_data_layer.py # 통합 데이터 레이어
+│   │   ├── advanced_statistics.py # 고급 통계 분석
+│   │   ├── advanced_visualization.py # 고급 시각화
+│   │   ├── statistical_tests.py   # 통계적 검정
+│   │   └── time_series_analysis.py # 시계열 분석
 │   └── utils/          # 분석 유틸리티
 ├── ml/                 # 머신러닝 모듈
 │   ├── algorithms/     # ML 알고리즘

@@ -29,6 +29,11 @@ from .visualization import (
     ReportConfig,
     ReportGenerator,
 )
+# CA 마일스톤 3.2: 고급 통계 분석 및 시각화
+from .advanced_statistics import AdvancedStatistics
+from .advanced_visualization import AdvancedVisualization
+from .statistical_tests import StatisticalTests
+from .time_series_analysis import TimeSeriesAnalysis
 
 __all__ = [
     # 기존 모듈
@@ -59,4 +64,9 @@ __all__ = [
     "ConversionRule",
     "StreamingProcessor",
     "IntegratedDataLayer",
+    # CA 마일스톤 3.2: 고급 통계 분석 및 시각화
+    "AdvancedStatistics",
+    "AdvancedVisualization",
+    "StatisticalTests",
+    "TimeSeriesAnalysis",
 ]
