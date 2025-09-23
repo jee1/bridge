@@ -1,0 +1,327 @@
+---
+description: 통합 데이터 분석 레이어 관련 규칙
+globs: src/bridge/analytics/core/*.py
+---
+
+# 통합 데이터 분석 레이어 가이드라인
+
+## CA 마일스톤 3.1: 통합 데이터 분석 레이어
+
+### DataUnifier 사용법
+```python
+from bridge.analytics.core import DataUnifier, UnifiedDataFrame
+
+# 데이터 통합기 초기화
+unifier = DataUnifier()
+
+# 다중 소스 데이터 통합
+data_sources = {
+    "postgres": postgres_data,
+    "mongodb": mongo_data,
+    "elasticsearch": es_data
+}
+
+unified_data = unifier.unify_data_sources(
+    data_sources=data_sources,
+    schema_mapping=schema_mapping,
+    merge_strategy="union"
+)
+
+# 통합된 데이터 정보
+print(f"통합된 데이터: {unified_data.num_rows}행, {unified_data.num_columns}열")
+```
+
+### SchemaMapper 사용법
+```python
+from bridge.analytics.core import SchemaMapper, SchemaMapping, ColumnMapping
+
+# 스키마 매퍼 초기화
+mapper = SchemaMapper()
+
+# 스키마 매핑 정의
+schema_mapping = SchemaMapping(
+    source_name="postgres",
+    target_schema={
+        "user_id": ColumnMapping(
+            source_column="id",
+            target_column="user_id",
+            data_type="integer",
+            transformation="identity"
+        ),
+        "email": ColumnMapping(
+            source_column="email_address",
+            target_column="email",
+            data_type="string",
+            transformation="lowercase"
+        )
+    },
+    data_quality_rules={
+        "user_id": {"not_null": True, "unique": True},
+        "email": {"format": "email", "not_null": True}
+    }
+)
+
+# 스키마 매핑 적용
+mapped_data = mapper.apply_schema_mapping(data, schema_mapping)
+
+# 자동 스키마 매핑
+auto_mapping = mapper.create_auto_mapping(data_sources)
+```
+
+### TypeConverter 사용법
+```python
+from bridge.analytics.core import TypeConverter, ConversionRule
+
+# 타입 변환기 초기화
+converter = TypeConverter()
+
+# 변환 규칙 정의
+conversion_rules = [
+    ConversionRule(
+        source_type="string",
+        target_type="datetime",
+        format_pattern="%Y-%m-%d",
+        error_handling="coerce"
+    ),
+    ConversionRule(
+        source_type="integer",
+        target_type="float",
+        transformation="divide_by_100"
+    )
+]
+
+# 데이터 타입 변환
+converted_data = converter.convert_types(data, conversion_rules)
+
+# 스키마 기반 자동 변환
+auto_converted = converter.auto_convert_types(data, target_schema)
+```
+
+### StreamingProcessor 사용법
+```python
+from bridge.analytics.core import StreamingProcessor
+
+# 스트리밍 프로세서 초기화
+processor = StreamingProcessor(
+    chunk_size=10000,
+    memory_limit_mb=1000
+)
+
+# 대용량 데이터 스트리밍 처리
+def process_chunk(chunk):
+    # 청크별 처리 로직
+    return chunk.apply_transformation()
+
+processed_data = processor.process_streaming(
+    data_stream=data_stream,
+    processor_func=process_chunk
+)
+
+# 메모리 효율적인 배치 처리
+for chunk in processor.process_in_batches(data, batch_size=5000):
+    result = process_chunk(chunk)
+    # 결과 저장
+```
+
+### IntegratedDataLayer 사용법
+```python
+from bridge.analytics.core import IntegratedDataLayer
+
+# 통합 데이터 레이어 초기화
+layer = IntegratedDataLayer(
+    chunk_size=10000,
+    memory_limit_mb=1000,
+    auto_schema_mapping=True
+)
+
+# 다중 소스 데이터 통합
+unified_data = layer.integrate_data_sources(
+    data_sources=data_sources,
+    schema_mapping=schema_mapping,
+    merge_strategy="union",
+    enable_streaming=True
+)
+
+# 데이터 요약 정보
+summary = layer.get_data_summary()
+print(f"통합된 데이터 요약: {summary}")
+
+# 데이터 내보내기
+layer.export_data(
+    unified_data,
+    format="parquet",
+    file_path="unified_data.parquet"
+)
+```
+
+## MCP 도구 사용법
+
+### data_unifier MCP 도구
+```json
+{
+  "tool": "data_unifier",
+  "arguments": {
+    "action": "unify",
+    "data_sources": {
+      "source1": {"data": [...]},
+      "source2": {"data": [...]}
+    },
+    "merge_strategy": "union"
+  }
+}
+```
+
+### schema_mapper MCP 도구
+```json
+{
+  "tool": "schema_mapper",
+  "arguments": {
+    "action": "map_schema",
+    "data": {...},
+    "mapping_rules": {
+      "source_column": "target_column"
+    }
+  }
+}
+```
+
+### type_converter MCP 도구
+```json
+{
+  "tool": "type_converter",
+  "arguments": {
+    "action": "convert",
+    "data": {...},
+    "conversion_rules": [
+      {
+        "source_type": "string",
+        "target_type": "datetime",
+        "format": "%Y-%m-%d"
+      }
+    ]
+  }
+}
+```
+
+### streaming_processor MCP 도구
+```json
+{
+  "tool": "streaming_processor",
+  "arguments": {
+    "action": "process",
+    "data": {...},
+    "processor_func": "transform_data",
+    "chunk_size": 10000,
+    "memory_limit_mb": 1000
+  }
+}
+```
+
+### integrated_data_layer MCP 도구
+```json
+{
+  "tool": "integrated_data_layer",
+  "arguments": {
+    "action": "integrate",
+    "data_sources": {...},
+    "transformations": [...],
+    "export_format": "arrow"
+  }
+}
+```
+
+## 데이터 통합 전략
+
+### Union 전략
+```python
+# 모든 소스의 컬럼을 포함 (누락된 값은 NULL)
+unified_data = layer.integrate_data_sources(
+    data_sources=data_sources,
+    merge_strategy="union"
+)
+```
+
+### Intersection 전략
+```python
+# 공통 컬럼만 포함
+unified_data = layer.integrate_data_sources(
+    data_sources=data_sources,
+    merge_strategy="intersection"
+)
+```
+
+### Custom 전략
+```python
+# 사용자 정의 통합 로직
+def custom_merge_logic(source1, source2):
+    # 커스텀 통합 로직
+    return merged_data
+
+unified_data = layer.integrate_data_sources(
+    data_sources=data_sources,
+    merge_strategy="custom",
+    custom_merge_func=custom_merge_logic
+)
+```
+
+## 성능 최적화
+
+### 메모리 효율적인 처리
+```python
+# 스트리밍 처리 활성화
+layer = IntegratedDataLayer(
+    chunk_size=5000,  # 작은 청크 크기
+    memory_limit_mb=500,  # 낮은 메모리 제한
+    auto_schema_mapping=True
+)
+
+# 대용량 데이터 처리
+unified_data = layer.integrate_data_sources(
+    data_sources=large_data_sources,
+    enable_streaming=True
+)
+```
+
+### 병렬 처리
+```python
+# 멀티프로세싱을 통한 병렬 처리
+from multiprocessing import Pool
+
+def process_source(source_data):
+    return layer.process_single_source(source_data)
+
+with Pool(processes=4) as pool:
+    results = pool.map(process_source, data_sources.values())
+```
+
+## 에러 처리
+
+### 데이터 통합 에러 처리
+```python
+try:
+    unified_data = layer.integrate_data_sources(data_sources)
+except DataIntegrationError as e:
+    logger.error(f"데이터 통합 실패: {e}")
+    # 부분 통합 시도
+    unified_data = layer.integrate_data_sources_partial(data_sources)
+```
+
+### 스키마 매핑 에러 처리
+```python
+try:
+    mapped_data = mapper.apply_schema_mapping(data, schema_mapping)
+except SchemaMappingError as e:
+    logger.error(f"스키마 매핑 실패: {e}")
+    # 자동 매핑으로 대체
+    auto_mapping = mapper.create_auto_mapping(data)
+    mapped_data = mapper.apply_schema_mapping(data, auto_mapping)
+```
+
+## 주의사항
+
+1. **메모리 관리**: 대용량 데이터는 스트리밍 처리 사용
+2. **스키마 일관성**: 통합 전에 스키마 매핑 규칙 정의
+3. **데이터 품질**: 통합 후 데이터 품질 검사 수행
+4. **성능 모니터링**: 처리 시간과 메모리 사용량 모니터링
+5. **에러 복구**: 부분 실패 시 대체 전략 준비
+6. **데이터 검증**: 통합된 데이터의 정확성 검증

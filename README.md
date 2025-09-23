@@ -51,6 +51,15 @@ Bridge는 다양한 데이터 소스(PostgreSQL, MongoDB, Elasticsearch 등)에 
 - **모델 관리**: 모델 레지스트리, 버전 관리, 성능 모니터링
 - **모델 추론**: 실시간 및 배치 예측 서비스
 
+### 🔗 통합 데이터 분석 레이어
+
+- **DataUnifier**: 다중 소스 데이터를 표준 테이블 형태로 통합
+- **SchemaMapper**: 스키마 매핑 및 정규화 시스템
+- **TypeConverter**: 고급 데이터 타입 변환 도구
+- **StreamingProcessor**: 대용량 데이터 스트리밍 처리
+- **IntegratedDataLayer**: 통합 데이터 분석 레이어 메인 클래스
+- **MCP 도구 확장**: data_unifier, schema_mapper, type_converter, streaming_processor, integrated_data_layer
+
 ### 🔒 엔터프라이즈 보안
 
 - **RBAC (역할 기반 접근 제어)**: 프로젝트, 커넥터, 데이터셋에 대한 세밀한 권한 관리
@@ -136,6 +145,11 @@ src/bridge/
 │   └── logger.py       # 감사 로거
 ├── analytics/          # 분석 도구
 │   ├── core/           # 핵심 분석 기능
+│   │   ├── data_unifier.py        # 데이터 통합
+│   │   ├── schema_mapper.py       # 스키마 매핑
+│   │   ├── type_converter.py      # 타입 변환
+│   │   ├── streaming_processor.py # 스트리밍 처리
+│   │   └── integrated_data_layer.py # 통합 데이터 레이어
 │   └── utils/          # 분석 유틸리티
 ├── ml/                 # 머신러닝 모듈
 │   ├── algorithms/     # ML 알고리즘
@@ -270,6 +284,33 @@ from bridge.ml.models.registry import ModelRegistry
 registry = ModelRegistry()
 model = registry.get_model("churn_model_001")
 predictions = registry.predict(model.id, test_data)
+```
+
+### 10. 통합 데이터 분석 레이어 사용 예시 (선택사항)
+
+```python
+# 통합 데이터 분석 레이어
+from bridge.analytics.core import IntegratedDataLayer
+
+# 통합 레이어 초기화
+layer = IntegratedDataLayer(chunk_size=10000, memory_limit_mb=1000)
+
+# 다중 소스 데이터 통합
+data_sources = {
+    "postgres": postgres_data,
+    "mongodb": mongo_data,
+    "elasticsearch": es_data
+}
+
+unified_data = layer.integrate_data_sources(
+    data_sources=data_sources,
+    merge_strategy="union",
+    enable_streaming=True
+)
+
+# 데이터 요약 정보
+summary = layer.get_data_summary()
+print(f"통합된 데이터: {summary}")
 ```
 
 ## 🤖 AI 작업 템플릿
@@ -434,6 +475,7 @@ docker-compose -f docker-compose.dev.yml run --rm test
 ### 사용자 가이드
 - [사용자 가이드](docs/user-guide.md) - 각 기능별 상세한 사용 방법
 - [ML 사용 가이드](docs/ml-user-guide.md) - 머신러닝 기능 사용법
+- [통합 데이터 분석 가이드](docs/integrated-data-layer-guide.md) - 통합 데이터 분석 레이어 사용법
 - [API 참조 문서](docs/api-reference.md) - REST API 완전 참조
 - [MCP 설치 및 사용 가이드](docs/mcp-installation-guide.md) - MCP 서버 설치 및 클라이언트 연결 방법
 
@@ -474,6 +516,7 @@ Bridge MCP는 **엔터프라이즈 데이터를 AI와 연결하는 다리** 역�
 2. **AI 통합**: LangChain, OpenAI SDK 통합 완료
 3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료
 4. **ML 기능**: 시계열 분석, 모델 관리, 거버넌스 계약 구현 완료
+5. **통합 데이터 분석 레이어**: CA 마일스톤 3.1 구현 완료
 5. **모니터링**: Prometheus, Grafana 대시보드 구축
 6. **테스트**: 단위/통합 테스트 확장
 7. **문서화**: API 문서 자동 생성

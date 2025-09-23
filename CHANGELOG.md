@@ -8,6 +8,13 @@
 
 ### Added
 
+- **CA 마일스톤 3.1: 통합 데이터 분석 레이어**
+  - **DataUnifier**: 다중 소스 데이터를 표준 테이블 형태로 통합
+  - **SchemaMapper**: 스키마 매핑 및 정규화 시스템
+  - **TypeConverter**: 고급 데이터 타입 변환 도구
+  - **StreamingProcessor**: 대용량 데이터 스트리밍 처리
+  - **IntegratedDataLayer**: 통합 데이터 분석 레이어 메인 클래스
+  - **MCP 도구 확장**: data_unifier, schema_mapper, type_converter, streaming_processor, integrated_data_layer
 - CD 마일스톤 2.3: 통합 대시보드 및 모니터링 시스템
 - CD 마일스톤 2.2: 자동화 파이프라인 구현
 - CD 마일스톤 2.1: 데이터 거버넌스 시스템

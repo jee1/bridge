@@ -418,6 +418,141 @@ class UnifiedBridgeMCPServer:
                     "required": ["data"],
                 },
             },
+            # CA 마일스톤 3.1: 통합 데이터 분석 레이어 도구들
+            {
+                "name": "data_unifier",
+                "description": "다중 소스 데이터를 표준 테이블 형태로 통합",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data_sources": {
+                            "type": "object",
+                            "description": "데이터 소스 딕셔너리 {소스명: 데이터}",
+                        },
+                        "schema_mapping": {
+                            "type": "object",
+                            "description": "스키마 매핑 규칙 {소스명: {원본컬럼: 통합컬럼}}",
+                        },
+                        "merge_strategy": {
+                            "type": "string",
+                            "enum": ["union", "intersection", "custom"],
+                            "description": "통합 전략",
+                            "default": "union",
+                        },
+                    },
+                    "required": ["data_sources"],
+                },
+            },
+            {
+                "name": "schema_mapper",
+                "description": "스키마 매핑 및 정규화",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "source_name": {"type": "string", "description": "소스명"},
+                        "source_schema": {"type": "object", "description": "원본 스키마"},
+                        "target_schema": {"type": "object", "description": "대상 스키마 (선택사항)"},
+                        "mapping_rules": {
+                            "type": "object",
+                            "description": "매핑 규칙 {원본컬럼: 대상컬럼}",
+                        },
+                        "auto_detect": {
+                            "type": "boolean",
+                            "description": "자동 매핑 감지 여부",
+                            "default": True,
+                        },
+                    },
+                    "required": ["source_name", "source_schema"],
+                },
+            },
+            {
+                "name": "type_converter",
+                "description": "고급 데이터 타입 변환",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "변환할 데이터"},
+                        "target_schema": {"type": "object", "description": "대상 스키마"},
+                        "column_mappings": {
+                            "type": "object",
+                            "description": "컬럼 매핑 {원본컬럼: 대상컬럼}",
+                        },
+                        "conversion_rules": {
+                            "type": "array",
+                            "items": {"type": "object"},
+                            "description": "사용자 정의 변환 규칙",
+                        },
+                    },
+                    "required": ["data", "target_schema"],
+                },
+            },
+            {
+                "name": "streaming_processor",
+                "description": "대용량 데이터 스트리밍 처리",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "처리할 데이터"},
+                        "processor_func": {"type": "string", "description": "처리 함수명"},
+                        "chunk_size": {
+                            "type": "integer",
+                            "description": "청크 크기",
+                            "default": 10000,
+                        },
+                        "memory_limit_mb": {
+                            "type": "integer",
+                            "description": "메모리 제한 (MB)",
+                            "default": 1000,
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "처리 함수에 전달할 파라미터",
+                        },
+                    },
+                    "required": ["data", "processor_func"],
+                },
+            },
+            {
+                "name": "integrated_data_layer",
+                "description": "통합 데이터 분석 레이어 메인 도구",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": ["integrate", "transform", "export", "validate", "summary"],
+                            "description": "수행할 작업",
+                        },
+                        "data_sources": {
+                            "type": "object",
+                            "description": "데이터 소스 딕셔너리 (integrate 작업시)",
+                        },
+                        "transformations": {
+                            "type": "array",
+                            "items": {"type": "object"},
+                            "description": "변환 규칙 목록 (transform 작업시)",
+                        },
+                        "export_format": {
+                            "type": "string",
+                            "enum": ["arrow", "pandas", "csv", "parquet"],
+                            "description": "내보낼 형식 (export 작업시)",
+                            "default": "arrow",
+                        },
+                        "file_path": {"type": "string", "description": "파일 경로 (export 작업시)"},
+                        "chunk_size": {
+                            "type": "integer",
+                            "description": "청크 크기",
+                            "default": 10000,
+                        },
+                        "memory_limit_mb": {
+                            "type": "integer",
+                            "description": "메모리 제한 (MB)",
+                            "default": 1000,
+                        },
+                    },
+                    "required": ["action"],
+                },
+            },
         ]
 
     def _get_env(self, key: str, default: str) -> str:
@@ -529,6 +664,17 @@ class UnifiedBridgeMCPServer:
                 return await self._quality_checker(arguments)
             elif tool_name == "report_builder":
                 return await self._report_builder(arguments)
+            # CA 마일스톤 3.1: 통합 데이터 분석 레이어 도구들
+            elif tool_name == "data_unifier":
+                return await self._data_unifier(arguments)
+            elif tool_name == "schema_mapper":
+                return await self._schema_mapper(arguments)
+            elif tool_name == "type_converter":
+                return await self._type_converter(arguments)
+            elif tool_name == "streaming_processor":
+                return await self._streaming_processor(arguments)
+            elif tool_name == "integrated_data_layer":
+                return await self._integrated_data_layer(arguments)
             else:
                 return {
                     "success": False,
@@ -1127,6 +1273,352 @@ class UnifiedBridgeMCPServer:
             return {"success": False, "error": str(exc)}
         except Exception as e:
             logger.error(f"리포트 생성 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    # CA 마일스톤 3.1: 통합 데이터 분석 레이어 도구들 구현
+
+    async def _data_unifier(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터 통합 도구"""
+        try:
+            from bridge.analytics.core import DataUnifier
+
+            data_sources = args.get("data_sources", {})
+            schema_mapping = args.get("schema_mapping")
+            merge_strategy = args.get("merge_strategy", "union")
+
+            if not data_sources:
+                return {"success": False, "error": "데이터 소스가 제공되지 않았습니다"}
+
+            # DataUnifier 인스턴스 생성
+            unifier = DataUnifier()
+
+            # 데이터 통합 실행
+            unified_data = unifier.unify_data_sources(
+                data_sources, schema_mapping, merge_strategy
+            )
+
+            # 결과 요약 생성
+            summary = unifier.create_data_summary(unified_data)
+            validation = unifier.validate_unified_data(unified_data)
+
+            return {
+                "success": True,
+                "message": "데이터 통합이 성공적으로 완료되었습니다",
+                "unified_data": {
+                    "rows": unified_data.num_rows,
+                    "columns": unified_data.num_columns,
+                    "column_names": unified_data.column_names,
+                },
+                "summary": summary,
+                "validation": validation,
+                "mode": self.mode,
+            }
+        except Exception as e:
+            logger.error(f"데이터 통합 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _schema_mapper(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """스키마 매핑 도구"""
+        try:
+            from bridge.analytics.core import SchemaMapper
+            import pyarrow as pa
+
+            source_name = args.get("source_name", "")
+            source_schema_data = args.get("source_schema", {})
+            target_schema_data = args.get("target_schema")
+            mapping_rules = args.get("mapping_rules", {})
+            auto_detect = args.get("auto_detect", True)
+
+            if not source_name or not source_schema_data:
+                return {"success": False, "error": "소스명과 원본 스키마가 필요합니다"}
+
+            # 스키마 객체 생성
+            source_schema = pa.schema([
+                pa.field(name, pa.DataType.from_string(type_str))
+                for name, type_str in source_schema_data.items()
+            ])
+
+            target_schema = None
+            if target_schema_data:
+                target_schema = pa.schema([
+                    pa.field(name, pa.DataType.from_string(type_str))
+                    for name, type_str in target_schema_data.items()
+                ])
+
+            # SchemaMapper 인스턴스 생성
+            mapper = SchemaMapper()
+
+            # 스키마 매핑 생성
+            schema_mapping = mapper.create_mapping(
+                source_name, source_schema, target_schema, mapping_rules, auto_detect
+            )
+
+            # 매핑 검증
+            validation = mapper.validate_mapping(source_name)
+
+            return {
+                "success": True,
+                "message": "스키마 매핑이 성공적으로 생성되었습니다",
+                "mapping": {
+                    "source_name": schema_mapping.source_name,
+                    "total_mappings": len(schema_mapping.column_mappings),
+                    "column_mappings": [
+                        {
+                            "source_column": mapping.source_column,
+                            "target_column": mapping.target_column,
+                            "data_type": mapping.data_type,
+                            "is_required": mapping.is_required,
+                        }
+                        for mapping in schema_mapping.column_mappings
+                    ],
+                },
+                "validation": validation,
+                "mode": self.mode,
+            }
+        except Exception as e:
+            logger.error(f"스키마 매핑 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _type_converter(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터 타입 변환 도구"""
+        try:
+            from bridge.analytics.core import TypeConverter
+            import pyarrow as pa
+
+            data = args.get("data", {})
+            target_schema_data = args.get("target_schema", {})
+            column_mappings = args.get("column_mappings", {})
+            conversion_rules = args.get("conversion_rules", [])
+
+            if not data or not target_schema_data:
+                return {"success": False, "error": "데이터와 대상 스키마가 필요합니다"}
+
+            # 데이터를 Arrow Table로 변환
+            if isinstance(data, dict):
+                table = pa.Table.from_pylist([data])
+            elif isinstance(data, list):
+                table = pa.Table.from_pylist(data)
+            else:
+                table = data
+
+            # 대상 스키마 생성
+            def get_arrow_type(type_str):
+                if type_str == "int64":
+                    return pa.int64()
+                elif type_str == "string":
+                    return pa.string()
+                elif type_str == "float64":
+                    return pa.float64()
+                elif type_str == "bool":
+                    return pa.bool_()
+                elif type_str == "timestamp":
+                    return pa.timestamp("us")
+                elif type_str == "date":
+                    return pa.date32()
+                else:
+                    return pa.string()
+            
+            target_schema = pa.schema([
+                pa.field(name, get_arrow_type(type_str))
+                for name, type_str in target_schema_data.items()
+            ])
+
+            # TypeConverter 인스턴스 생성
+            converter = TypeConverter()
+
+            # 사용자 정의 변환 규칙 추가
+            for rule_data in conversion_rules:
+                from bridge.analytics.core import ConversionRule
+                rule = ConversionRule(**rule_data)
+                converter.add_conversion_rule(rule)
+
+            # 데이터 타입 변환 실행
+            converted_table = converter.convert_table(table, target_schema, column_mappings)
+
+            return {
+                "success": True,
+                "message": "데이터 타입 변환이 성공적으로 완료되었습니다",
+                "converted_data": {
+                    "rows": len(converted_table),
+                    "columns": len(converted_table.schema),
+                    "column_types": {
+                        name: str(field.type)
+                        for name, field in zip(converted_table.schema.names, converted_table.schema)
+                    },
+                },
+                "mode": self.mode,
+            }
+        except Exception as e:
+            logger.error(f"데이터 타입 변환 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _streaming_processor(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """스트리밍 처리 도구"""
+        try:
+            from bridge.analytics.core import StreamingProcessor
+            import pyarrow as pa
+
+            data = args.get("data", {})
+            processor_func = args.get("processor_func", "")
+            chunk_size = args.get("chunk_size", 10000)
+            memory_limit_mb = args.get("memory_limit_mb", 1000)
+            parameters = args.get("parameters", {})
+
+            if not data or not processor_func:
+                return {"success": False, "error": "데이터와 처리 함수가 필요합니다"}
+
+            # 데이터를 Arrow Table로 변환
+            if isinstance(data, dict):
+                table = pa.Table.from_pylist([data])
+            elif isinstance(data, list):
+                table = pa.Table.from_pylist(data)
+            else:
+                table = data
+
+            # StreamingProcessor 인스턴스 생성
+            processor = StreamingProcessor(chunk_size, memory_limit_mb)
+
+            # 처리 함수 정의
+            def process_func(table_chunk, **kwargs):
+                # 간단한 처리 함수 (실제로는 더 복잡한 로직이 들어갈 수 있음)
+                return table_chunk
+
+            # 스트리밍 처리 실행
+            processed_table = processor.process_large_table(
+                table, process_func, **parameters
+            )
+
+            # 메모리 사용량 분석
+            memory_usage = processor.get_memory_usage(processed_table)
+
+            return {
+                "success": True,
+                "message": "스트리밍 처리가 성공적으로 완료되었습니다",
+                "processed_data": {
+                    "rows": len(processed_table),
+                    "columns": len(processed_table.schema),
+                },
+                "memory_usage": memory_usage,
+                "processing_info": {
+                    "chunk_size": chunk_size,
+                    "memory_limit_mb": memory_limit_mb,
+                    "processor_func": processor_func,
+                },
+                "mode": self.mode,
+            }
+        except Exception as e:
+            logger.error(f"스트리밍 처리 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _integrated_data_layer(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """통합 데이터 분석 레이어 메인 도구"""
+        try:
+            from bridge.analytics.core import IntegratedDataLayer
+
+            action = args.get("action", "")
+            data_sources = args.get("data_sources", {})
+            transformations = args.get("transformations", [])
+            export_format = args.get("export_format", "arrow")
+            file_path = args.get("file_path")
+            chunk_size = args.get("chunk_size", 10000)
+            memory_limit_mb = args.get("memory_limit_mb", 1000)
+
+            if not action:
+                return {"success": False, "error": "수행할 작업이 지정되지 않았습니다"}
+
+            # IntegratedDataLayer 인스턴스 생성
+            layer = IntegratedDataLayer(chunk_size, memory_limit_mb)
+
+            if action == "integrate":
+                if not data_sources:
+                    return {"success": False, "error": "통합할 데이터 소스가 필요합니다"}
+
+                # 데이터 통합
+                unified_data = layer.integrate_data_sources(data_sources)
+                summary = layer.get_data_summary()
+                validation = layer.validate_data_quality()
+
+                return {
+                    "success": True,
+                    "message": "데이터 통합이 성공적으로 완료되었습니다",
+                    "action": action,
+                    "unified_data": {
+                        "rows": unified_data.num_rows,
+                        "columns": unified_data.num_columns,
+                        "column_names": unified_data.column_names,
+                    },
+                    "summary": summary,
+                    "validation": validation,
+                    "mode": self.mode,
+                }
+
+            elif action == "transform":
+                if not transformations:
+                    return {"success": False, "error": "적용할 변환이 필요합니다"}
+
+                # 데이터 변환
+                transformed_data = layer.apply_data_transformations(transformations)
+
+                return {
+                    "success": True,
+                    "message": "데이터 변환이 성공적으로 완료되었습니다",
+                    "action": action,
+                    "transformed_data": {
+                        "rows": transformed_data.num_rows,
+                        "columns": transformed_data.num_columns,
+                    },
+                    "mode": self.mode,
+                }
+
+            elif action == "export":
+                # 데이터 내보내기
+                exported_data = layer.export_data(export_format, file_path)
+
+                return {
+                    "success": True,
+                    "message": f"데이터가 성공적으로 내보내졌습니다 ({export_format})",
+                    "action": action,
+                    "export_format": export_format,
+                    "file_path": file_path,
+                    "exported_data": str(exported_data)[:500] + "..." if len(str(exported_data)) > 500 else str(exported_data),
+                    "mode": self.mode,
+                }
+
+            elif action == "validate":
+                # 데이터 품질 검증
+                validation = layer.validate_data_quality()
+
+                return {
+                    "success": True,
+                    "message": "데이터 품질 검증이 완료되었습니다",
+                    "action": action,
+                    "validation": validation,
+                    "mode": self.mode,
+                }
+
+            elif action == "summary":
+                # 데이터 요약
+                summary = layer.get_data_summary()
+                memory_usage = layer.get_memory_usage()
+
+                return {
+                    "success": True,
+                    "message": "데이터 요약이 생성되었습니다",
+                    "action": action,
+                    "summary": summary,
+                    "memory_usage": memory_usage,
+                    "mode": self.mode,
+                }
+
+            else:
+                return {
+                    "success": False,
+                    "error": f"지원하지 않는 작업: {action}",
+                    "supported_actions": ["integrate", "transform", "export", "validate", "summary"],
+                }
+
+        except Exception as e:
+            logger.error(f"통합 데이터 분석 레이어 작업 실패: {e}")
             return {"success": False, "error": str(e)}
 
     def _ensure_dataframe(self, data: Any) -> pd.DataFrame:

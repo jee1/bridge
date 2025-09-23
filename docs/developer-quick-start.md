@@ -27,6 +27,11 @@ src/bridge/
 │   └── logger.py       # 감사 로거
 ├── analytics/          # 분석 도구
 │   ├── core/           # 핵심 분석 기능
+│   │   ├── data_unifier.py        # 데이터 통합
+│   │   ├── schema_mapper.py       # 스키마 매핑
+│   │   ├── type_converter.py      # 타입 변환
+│   │   ├── streaming_processor.py # 스트리밍 처리
+│   │   └── integrated_data_layer.py # 통합 데이터 레이어
 │   └── utils/          # 분석 유틸리티
 ├── ml/                 # 머신러닝 모듈
 │   ├── algorithms/     # ML 알고리즘
