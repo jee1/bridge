@@ -418,6 +418,165 @@ class UnifiedBridgeMCPServer:
                     "required": ["data"],
                 },
             },
+            # CA 마일스톤 3.3: 데이터 품질 관리 시스템
+            {
+                "name": "comprehensive_quality_metrics",
+                "description": "종합 품질 메트릭 계산 (완전성, 정확성, 일관성, 유효성)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "reference_data": {
+                            "type": "object",
+                            "description": "참조 데이터 (선택사항)",
+                        },
+                        "constraints": {
+                            "type": "object",
+                            "description": "유효성 제약조건 (선택사항)",
+                        },
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "advanced_outlier_detection",
+                "description": "고급 이상치 탐지 (Isolation Forest, LOF, One-Class SVM)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "method": {
+                            "type": "string",
+                            "enum": [
+                                "isolation_forest",
+                                "lof",
+                                "one_class_svm",
+                                "ensemble",
+                                "auto",
+                            ],
+                            "description": "탐지 방법",
+                            "default": "auto",
+                        },
+                        "parameters": {"type": "object", "description": "탐지 매개변수 (선택사항)"},
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "data_cleaning_pipeline",
+                "description": "데이터 정제 파이프라인 실행",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "정제할 데이터"},
+                        "pipeline_config": {
+                            "type": "object",
+                            "description": "파이프라인 설정 (선택사항)",
+                        },
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "quality_trend_analysis",
+                "description": "품질 트렌드 분석 및 예측",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "days": {
+                            "type": "integer",
+                            "description": "분석할 기간 (일)",
+                            "default": 30,
+                        },
+                        "add_snapshot": {
+                            "type": "boolean",
+                            "description": "현재 데이터를 스냅샷으로 추가할지 여부",
+                            "default": True,
+                        },
+                    },
+                    "required": ["data"],
+                },
+            },
+            {
+                "name": "set_quality_thresholds",
+                "description": "품질 임계값 설정",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "thresholds": {"type": "object", "description": "임계값 딕셔너리"},
+                    },
+                    "required": ["thresholds"],
+                },
+            },
+            # CA 마일스톤 3.4: 워크플로 및 자동화 시스템
+            {
+                "name": "execute_analysis_template",
+                "description": "분석 템플릿 실행 (고객 분석, 매출 분석, A/B 테스트)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "template_name": {"type": "string", "description": "템플릿 이름"},
+                        "data": {"type": "object", "description": "분석할 데이터"},
+                        "parameters": {"type": "object", "description": "분석 매개변수 (선택사항)"},
+                    },
+                    "required": ["template_name", "data"],
+                },
+            },
+            {
+                "name": "list_analysis_templates",
+                "description": "분석 템플릿 목록 조회",
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "get_template_info",
+                "description": "분석 템플릿 정보 조회",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "template_name": {"type": "string", "description": "템플릿 이름"},
+                    },
+                    "required": ["template_name"],
+                },
+            },
+            {
+                "name": "validate_data_for_template",
+                "description": "템플릿용 데이터 검증",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "template_name": {"type": "string", "description": "템플릿 이름"},
+                        "data": {"type": "object", "description": "검증할 데이터"},
+                    },
+                    "required": ["template_name", "data"],
+                },
+            },
+            {
+                "name": "create_workflow_dag",
+                "description": "워크플로 DAG 생성",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workflow_steps": {
+                            "type": "array",
+                            "items": {"type": "object"},
+                            "description": "워크플로 단계 목록",
+                        },
+                    },
+                    "required": ["workflow_steps"],
+                },
+            },
+            {
+                "name": "optimize_workflow_performance",
+                "description": "워크플로 성능 최적화",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "workflow_config": {"type": "object", "description": "워크플로 설정"},
+                    },
+                    "required": ["workflow_config"],
+                },
+            },
             # CA 마일스톤 3.1: 통합 데이터 분석 레이어 도구들
             {
                 "name": "data_unifier",
@@ -451,7 +610,10 @@ class UnifiedBridgeMCPServer:
                     "properties": {
                         "source_name": {"type": "string", "description": "소스명"},
                         "source_schema": {"type": "object", "description": "원본 스키마"},
-                        "target_schema": {"type": "object", "description": "대상 스키마 (선택사항)"},
+                        "target_schema": {
+                            "type": "object",
+                            "description": "대상 스키마 (선택사항)",
+                        },
                         "mapping_rules": {
                             "type": "object",
                             "description": "매핑 규칙 {원본컬럼: 대상컬럼}",
@@ -564,16 +726,16 @@ class UnifiedBridgeMCPServer:
                         "analysis_type": {
                             "type": "string",
                             "enum": ["descriptive", "correlation", "distribution", "summary"],
-                            "description": "분석 유형"
+                            "description": "분석 유형",
                         },
                         "columns": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "분석할 컬럼 목록"
-                        }
+                            "description": "분석할 컬럼 목록",
+                        },
                     },
-                    "required": ["data", "analysis_type"]
-                }
+                    "required": ["data", "analysis_type"],
+                },
             },
             {
                 "name": "interactive_charts",
@@ -585,16 +747,16 @@ class UnifiedBridgeMCPServer:
                         "chart_type": {
                             "type": "string",
                             "enum": ["bar", "line", "scatter", "histogram", "box", "heatmap"],
-                            "description": "차트 유형"
+                            "description": "차트 유형",
                         },
                         "x_column": {"type": "string", "description": "X축 컬럼명"},
                         "y_column": {"type": "string", "description": "Y축 컬럼명"},
                         "hue_column": {"type": "string", "description": "색상 구분 컬럼명"},
                         "title": {"type": "string", "description": "차트 제목"},
-                        "config": {"type": "object", "description": "차트 설정"}
+                        "config": {"type": "object", "description": "차트 설정"},
                     },
-                    "required": ["data", "chart_type"]
-                }
+                    "required": ["data", "chart_type"],
+                },
             },
             {
                 "name": "statistical_tests",
@@ -606,15 +768,15 @@ class UnifiedBridgeMCPServer:
                         "test_type": {
                             "type": "string",
                             "enum": ["t_test", "chi_square", "anova", "regression", "ab_test"],
-                            "description": "검정 유형"
+                            "description": "검정 유형",
                         },
                         "x_column": {"type": "string", "description": "X 변수 컬럼명"},
                         "y_column": {"type": "string", "description": "Y 변수 컬럼명"},
                         "group_column": {"type": "string", "description": "그룹 변수 컬럼명"},
-                        "alpha": {"type": "number", "description": "유의수준 (기본값: 0.05)"}
+                        "alpha": {"type": "number", "description": "유의수준 (기본값: 0.05)"},
                     },
-                    "required": ["data", "test_type"]
-                }
+                    "required": ["data", "test_type"],
+                },
             },
             {
                 "name": "time_series_analysis",
@@ -628,14 +790,14 @@ class UnifiedBridgeMCPServer:
                         "analysis_type": {
                             "type": "string",
                             "enum": ["decompose", "trend", "seasonality", "forecast", "anomalies"],
-                            "description": "분석 유형"
+                            "description": "분석 유형",
                         },
                         "method": {"type": "string", "description": "분석 방법"},
                         "forecast_periods": {"type": "integer", "description": "예측 기간"},
-                        "threshold": {"type": "number", "description": "임계값"}
+                        "threshold": {"type": "number", "description": "임계값"},
                     },
-                    "required": ["data", "time_column", "value_column", "analysis_type"]
-                }
+                    "required": ["data", "time_column", "value_column", "analysis_type"],
+                },
             },
         ]
 
@@ -768,6 +930,30 @@ class UnifiedBridgeMCPServer:
                 return await self._statistical_tests(arguments)
             elif tool_name == "time_series_analysis":
                 return await self._time_series_analysis(arguments)
+            # CA 마일스톤 3.3: 데이터 품질 관리 시스템 도구들
+            elif tool_name == "comprehensive_quality_metrics":
+                return await self._comprehensive_quality_metrics(arguments)
+            elif tool_name == "advanced_outlier_detection":
+                return await self._advanced_outlier_detection(arguments)
+            elif tool_name == "data_cleaning_pipeline":
+                return await self._data_cleaning_pipeline(arguments)
+            elif tool_name == "quality_trend_analysis":
+                return await self._quality_trend_analysis(arguments)
+            elif tool_name == "set_quality_thresholds":
+                return await self._set_quality_thresholds(arguments)
+            # CA 마일스톤 3.4: 워크플로 및 자동화 시스템 도구들
+            elif tool_name == "execute_analysis_template":
+                return await self._execute_analysis_template(arguments)
+            elif tool_name == "list_analysis_templates":
+                return await self._list_analysis_templates(arguments)
+            elif tool_name == "get_template_info":
+                return await self._get_template_info(arguments)
+            elif tool_name == "validate_data_for_template":
+                return await self._validate_data_for_template(arguments)
+            elif tool_name == "create_workflow_dag":
+                return await self._create_workflow_dag(arguments)
+            elif tool_name == "optimize_workflow_performance":
+                return await self._optimize_workflow_performance(arguments)
             else:
                 return {
                     "success": False,
@@ -954,6 +1140,275 @@ class UnifiedBridgeMCPServer:
         except Exception as e:
             logger.error(f"분석 실행 실패: {e}")
             return {"success": False, "error": str(e), "intent": intent}
+
+    # CA 마일스톤 3.3: 데이터 품질 관리 시스템 핸들러들
+    async def _comprehensive_quality_metrics(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """종합 품질 메트릭 계산"""
+        try:
+            from bridge.analytics.core.data_integration import UnifiedDataFrame
+            from bridge.analytics.mcp_tools.quality_management_tools import QualityManagementTools
+
+            data = args.get("data", {})
+            reference_data = args.get("reference_data")
+            constraints = args.get("constraints")
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                import pandas as pd
+
+                df = pd.DataFrame(data)
+                unified_data = UnifiedDataFrame(df)
+            else:
+                unified_data = data
+
+            # 참조 데이터 변환
+            unified_reference_data = None
+            if reference_data and isinstance(reference_data, dict):
+                import pandas as pd
+
+                ref_df = pd.DataFrame(reference_data)
+                unified_reference_data = UnifiedDataFrame(ref_df)
+
+            # 품질 관리 도구 실행
+            quality_tools = QualityManagementTools()
+            result = quality_tools.calculate_comprehensive_quality(
+                unified_data, unified_reference_data, constraints
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"종합 품질 메트릭 계산 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _advanced_outlier_detection(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """고급 이상치 탐지"""
+        try:
+            from bridge.analytics.core.data_integration import UnifiedDataFrame
+            from bridge.analytics.mcp_tools.quality_management_tools import QualityManagementTools
+
+            data = args.get("data", {})
+            method = args.get("method", "auto")
+            parameters = args.get("parameters", {})
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                import pandas as pd
+
+                df = pd.DataFrame(data)
+                unified_data = UnifiedDataFrame(df)
+            else:
+                unified_data = data
+
+            # 품질 관리 도구 실행
+            quality_tools = QualityManagementTools()
+            result = quality_tools.detect_advanced_outliers(unified_data, method, parameters)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"고급 이상치 탐지 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _data_cleaning_pipeline(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터 정제 파이프라인 실행"""
+        try:
+            from bridge.analytics.core.data_integration import UnifiedDataFrame
+            from bridge.analytics.mcp_tools.quality_management_tools import QualityManagementTools
+
+            data = args.get("data", {})
+            pipeline_config = args.get("pipeline_config")
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                import pandas as pd
+
+                df = pd.DataFrame(data)
+                unified_data = UnifiedDataFrame(df)
+            else:
+                unified_data = data
+
+            # 품질 관리 도구 실행
+            quality_tools = QualityManagementTools()
+            result = quality_tools.clean_data_pipeline(unified_data, pipeline_config)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"데이터 정제 파이프라인 실행 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _quality_trend_analysis(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """품질 트렌드 분석"""
+        try:
+            from bridge.analytics.core.data_integration import UnifiedDataFrame
+            from bridge.analytics.mcp_tools.quality_management_tools import QualityManagementTools
+
+            data = args.get("data", {})
+            days = args.get("days", 30)
+            add_snapshot = args.get("add_snapshot", True)
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                import pandas as pd
+
+                df = pd.DataFrame(data)
+                unified_data = UnifiedDataFrame(df)
+            else:
+                unified_data = data
+
+            # 품질 관리 도구 실행
+            quality_tools = QualityManagementTools()
+            result = quality_tools.analyze_quality_trends(unified_data, days, add_snapshot)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"품질 트렌드 분석 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _set_quality_thresholds(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """품질 임계값 설정"""
+        try:
+            from bridge.analytics.mcp_tools.quality_management_tools import QualityManagementTools
+
+            thresholds = args.get("thresholds", {})
+
+            # 품질 관리 도구 실행
+            quality_tools = QualityManagementTools()
+            result = quality_tools.set_quality_thresholds(thresholds)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"품질 임계값 설정 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    # CA 마일스톤 3.4: 워크플로 및 자동화 시스템 핸들러들
+    async def _execute_analysis_template(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """분석 템플릿 실행"""
+        try:
+            from bridge.analytics.core.data_integration import UnifiedDataFrame
+            from bridge.analytics.mcp_tools.workflow_automation_tools import WorkflowAutomationTools
+
+            template_name = args.get("template_name", "")
+            data = args.get("data", {})
+            parameters = args.get("parameters", {})
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                import pandas as pd
+
+                df = pd.DataFrame(data)
+                unified_data = UnifiedDataFrame(df)
+            else:
+                unified_data = data
+
+            # 워크플로 자동화 도구 실행
+            workflow_tools = WorkflowAutomationTools()
+            result = workflow_tools.execute_analysis_template(
+                template_name, unified_data, parameters
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"분석 템플릿 실행 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _list_analysis_templates(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """분석 템플릿 목록 조회"""
+        try:
+            from bridge.analytics.mcp_tools.workflow_automation_tools import WorkflowAutomationTools
+
+            # 워크플로 자동화 도구 실행
+            workflow_tools = WorkflowAutomationTools()
+            result = workflow_tools.list_analysis_templates()
+
+            return result
+
+        except Exception as e:
+            logger.error(f"분석 템플릿 목록 조회 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _get_template_info(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """분석 템플릿 정보 조회"""
+        try:
+            from bridge.analytics.mcp_tools.workflow_automation_tools import WorkflowAutomationTools
+
+            template_name = args.get("template_name", "")
+
+            # 워크플로 자동화 도구 실행
+            workflow_tools = WorkflowAutomationTools()
+            result = workflow_tools.get_template_info(template_name)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"분석 템플릿 정보 조회 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _validate_data_for_template(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """템플릿용 데이터 검증"""
+        try:
+            from bridge.analytics.core.data_integration import UnifiedDataFrame
+            from bridge.analytics.mcp_tools.workflow_automation_tools import WorkflowAutomationTools
+
+            template_name = args.get("template_name", "")
+            data = args.get("data", {})
+
+            # 데이터를 UnifiedDataFrame으로 변환
+            if isinstance(data, dict):
+                import pandas as pd
+
+                df = pd.DataFrame(data)
+                unified_data = UnifiedDataFrame(df)
+            else:
+                unified_data = data
+
+            # 워크플로 자동화 도구 실행
+            workflow_tools = WorkflowAutomationTools()
+            result = workflow_tools.validate_data_for_template(template_name, unified_data)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"템플릿용 데이터 검증 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _create_workflow_dag(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """워크플로 DAG 생성"""
+        try:
+            from bridge.analytics.mcp_tools.workflow_automation_tools import WorkflowAutomationTools
+
+            workflow_steps = args.get("workflow_steps", [])
+
+            # 워크플로 자동화 도구 실행
+            workflow_tools = WorkflowAutomationTools()
+            result = workflow_tools.create_workflow_dag(workflow_steps)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"워크플로 DAG 생성 실패: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _optimize_workflow_performance(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """워크플로 성능 최적화"""
+        try:
+            from bridge.analytics.mcp_tools.workflow_automation_tools import WorkflowAutomationTools
+
+            workflow_config = args.get("workflow_config", {})
+
+            # 워크플로 자동화 도구 실행
+            workflow_tools = WorkflowAutomationTools()
+            result = workflow_tools.optimize_workflow_performance(workflow_config)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"워크플로 성능 최적화 실패: {e}")
+            return {"success": False, "error": str(e)}
 
     # Analytics 도구 핸들러들
     async def _statistics_analyzer(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -1386,9 +1841,7 @@ class UnifiedBridgeMCPServer:
             unifier = DataUnifier()
 
             # 데이터 통합 실행
-            unified_data = unifier.unify_data_sources(
-                data_sources, schema_mapping, merge_strategy
-            )
+            unified_data = unifier.unify_data_sources(data_sources, schema_mapping, merge_strategy)
 
             # 결과 요약 생성
             summary = unifier.create_data_summary(unified_data)
@@ -1413,8 +1866,9 @@ class UnifiedBridgeMCPServer:
     async def _schema_mapper(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """스키마 매핑 도구"""
         try:
-            from bridge.analytics.core import SchemaMapper
             import pyarrow as pa
+
+            from bridge.analytics.core import SchemaMapper
 
             source_name = args.get("source_name", "")
             source_schema_data = args.get("source_schema", {})
@@ -1426,17 +1880,21 @@ class UnifiedBridgeMCPServer:
                 return {"success": False, "error": "소스명과 원본 스키마가 필요합니다"}
 
             # 스키마 객체 생성
-            source_schema = pa.schema([
-                pa.field(name, pa.DataType.from_string(type_str))
-                for name, type_str in source_schema_data.items()
-            ])
+            source_schema = pa.schema(
+                [
+                    pa.field(name, pa.DataType.from_string(type_str))
+                    for name, type_str in source_schema_data.items()
+                ]
+            )
 
             target_schema = None
             if target_schema_data:
-                target_schema = pa.schema([
-                    pa.field(name, pa.DataType.from_string(type_str))
-                    for name, type_str in target_schema_data.items()
-                ])
+                target_schema = pa.schema(
+                    [
+                        pa.field(name, pa.DataType.from_string(type_str))
+                        for name, type_str in target_schema_data.items()
+                    ]
+                )
 
             # SchemaMapper 인스턴스 생성
             mapper = SchemaMapper()
@@ -1475,8 +1933,9 @@ class UnifiedBridgeMCPServer:
     async def _type_converter(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """데이터 타입 변환 도구"""
         try:
-            from bridge.analytics.core import TypeConverter
             import pyarrow as pa
+
+            from bridge.analytics.core import TypeConverter
 
             data = args.get("data", {})
             target_schema_data = args.get("target_schema", {})
@@ -1510,11 +1969,13 @@ class UnifiedBridgeMCPServer:
                     return pa.date32()
                 else:
                     return pa.string()
-            
-            target_schema = pa.schema([
-                pa.field(name, get_arrow_type(type_str))
-                for name, type_str in target_schema_data.items()
-            ])
+
+            target_schema = pa.schema(
+                [
+                    pa.field(name, get_arrow_type(type_str))
+                    for name, type_str in target_schema_data.items()
+                ]
+            )
 
             # TypeConverter 인스턴스 생성
             converter = TypeConverter()
@@ -1522,6 +1983,7 @@ class UnifiedBridgeMCPServer:
             # 사용자 정의 변환 규칙 추가
             for rule_data in conversion_rules:
                 from bridge.analytics.core import ConversionRule
+
                 rule = ConversionRule(**rule_data)
                 converter.add_conversion_rule(rule)
 
@@ -1548,8 +2010,9 @@ class UnifiedBridgeMCPServer:
     async def _streaming_processor(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """스트리밍 처리 도구"""
         try:
-            from bridge.analytics.core import StreamingProcessor
             import pyarrow as pa
+
+            from bridge.analytics.core import StreamingProcessor
 
             data = args.get("data", {})
             processor_func = args.get("processor_func", "")
@@ -1577,9 +2040,7 @@ class UnifiedBridgeMCPServer:
                 return table_chunk
 
             # 스트리밍 처리 실행
-            processed_table = processor.process_large_table(
-                table, process_func, **parameters
-            )
+            processed_table = processor.process_large_table(table, process_func, **parameters)
 
             # 메모리 사용량 분석
             memory_usage = processor.get_memory_usage(processed_table)
@@ -1673,7 +2134,11 @@ class UnifiedBridgeMCPServer:
                     "action": action,
                     "export_format": export_format,
                     "file_path": file_path,
-                    "exported_data": str(exported_data)[:500] + "..." if len(str(exported_data)) > 500 else str(exported_data),
+                    "exported_data": (
+                        str(exported_data)[:500] + "..."
+                        if len(str(exported_data)) > 500
+                        else str(exported_data)
+                    ),
                     "mode": self.mode,
                 }
 
@@ -1707,7 +2172,13 @@ class UnifiedBridgeMCPServer:
                 return {
                     "success": False,
                     "error": f"지원하지 않는 작업: {action}",
-                    "supported_actions": ["integrate", "transform", "export", "validate", "summary"],
+                    "supported_actions": [
+                        "integrate",
+                        "transform",
+                        "export",
+                        "validate",
+                        "summary",
+                    ],
                 }
 
         except Exception as e:
@@ -2165,7 +2636,6 @@ class UnifiedBridgeMCPServer:
         else:
             await self.run_direct_mode()
 
-
     # CA 마일스톤 3.2: 고급 통계 분석 및 시각화 도구 핸들러들
     async def _advanced_statistics(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """고급 통계 분석 도구"""
@@ -2326,9 +2796,13 @@ class UnifiedBridgeMCPServer:
             elif analysis_type == "seasonality":
                 result = analyzer.detect_seasonality(df, time_column, value_column)
             elif analysis_type == "forecast":
-                result = analyzer.forecast_time_series(df, time_column, value_column, forecast_periods, method)
+                result = analyzer.forecast_time_series(
+                    df, time_column, value_column, forecast_periods, method
+                )
             elif analysis_type == "anomalies":
-                result = analyzer.analyze_anomalies(df, time_column, value_column, method, threshold)
+                result = analyzer.analyze_anomalies(
+                    df, time_column, value_column, method, threshold
+                )
             else:
                 return {"success": False, "error": f"지원하지 않는 분석 유형: {analysis_type}"}
 

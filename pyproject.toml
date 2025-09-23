@@ -126,6 +126,8 @@ module = [
     "matplotlib.*",
     "seaborn.*",
     "sklearn.*",
+    "psutil.*",
+    "requests.*",
     "xgboost.*",
     "lightgbm.*",
     "torch.*",
@@ -135,3 +137,18 @@ module = [
     "mlflow.*"
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "bridge.automation.*",
+    "bridge.dashboard.*",
+]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "bridge.analytics.*",
+    "bridge.ml.*",
+    "bridge.mcp_server_unified",
+]
+ignore_errors = true

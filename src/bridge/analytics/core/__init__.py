@@ -4,6 +4,9 @@
 CA 마일스톤 3.1: 통합 데이터 분석 레이어 추가
 """
 
+# CA 마일스톤 3.2: 고급 통계 분석 및 시각화
+from .advanced_statistics import AdvancedStatistics
+from .advanced_visualization import AdvancedVisualization
 from .connector_adapter import ConnectorAdapter
 from .cross_source_joiner import CrossSourceJoiner
 from .data_integration import UnifiedDataFrame
@@ -16,9 +19,11 @@ from .quality import (
     QualityChecker,
     QualityReport,
 )
-from .schema_mapper import ColumnMapping, SchemaMapping, SchemaMapper
+from .schema_mapper import ColumnMapping, SchemaMapper, SchemaMapping
+from .statistical_tests import StatisticalTests
 from .statistics import CorrelationResult, DescriptiveStats, StatisticsAnalyzer
 from .streaming_processor import StreamingProcessor
+from .time_series_analysis import TimeSeriesAnalysis
 from .type_converter import ConversionRule, TypeConverter
 from .type_normalizer import TypeNormalizer
 from .visualization import (
@@ -29,11 +34,6 @@ from .visualization import (
     ReportConfig,
     ReportGenerator,
 )
-# CA 마일스톤 3.2: 고급 통계 분석 및 시각화
-from .advanced_statistics import AdvancedStatistics
-from .advanced_visualization import AdvancedVisualization
-from .statistical_tests import StatisticalTests
-from .time_series_analysis import TimeSeriesAnalysis
 
 __all__ = [
     # 기존 모듈

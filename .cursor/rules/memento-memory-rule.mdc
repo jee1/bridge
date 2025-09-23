@@ -1,0 +1,86 @@
+---
+description: AI agent가 작업 전후로 memento 메모리 시스템을 체계적으로 활용하도록 하는 규칙
+globs: 
+alwaysApply: true
+---
+
+# Memento 메모리 시스템 활용 규칙
+
+## 작업 시작 전 (기억 검색)
+
+모든 작업을 시작하기 전에 반드시 관련 기억을 검색하세요:
+
+1. **mcp_memento_recall 도구 사용**
+   - 작업과 관련된 키워드로 기억 검색
+   - 최근 10개 기억을 기본으로 확인
+   - 관련 태그나 타입으로 필터링
+
+2. **검색 키워드 전략**
+   - 작업 유형 (예: "코딩", "디버깅", "설계")
+   - 기술 스택 (예: "Python", "FastAPI", "Docker")
+   - 프로젝트 관련 (예: "bridge", "analytics", "connector")
+   - 특정 기능이나 모듈명
+
+3. **기억 활용 방법**
+   - 검색된 기억을 바탕으로 작업 방향 결정
+   - 이전 실패 사례나 주의사항 참고
+   - 성공한 패턴이나 방법론 재사용
+
+## 작업 완료 후 (기억 저장)
+
+작업이 완료되면 반드시 새로운 기억을 저장하세요:
+
+1. **mcp_memento_remember 도구 사용**
+   - 작업 내용과 결과를 상세히 기록
+   - 학습한 내용이나 인사이트 포함
+   - 향후 참고할 수 있는 정보 정리
+
+2. **기억 타입 분류**
+   - `episodic`: 특정 작업 경험 (기본값)
+   - `semantic`: 일반적인 지식이나 개념
+   - `procedural`: 절차나 방법론
+   - `working`: 현재 작업 중인 임시 정보
+
+3. **태그 시스템**
+   - 기술: `python`, `fastapi`, `docker`, `testing`
+   - 도메인: `analytics`, `connector`, `orchestrator`, `ml`
+   - 작업유형: `coding`, `debugging`, `design`, `refactoring`
+   - 상태: `success`, `failure`, `learning`, `optimization`
+
+4. **중요도 설정**
+   - `0.9-1.0`: 매우 중요 (핵심 아키텍처, 보안 관련)
+   - `0.7-0.8`: 중요 (주요 기능, 성능 최적화)
+   - `0.5-0.6`: 보통 (일반적인 작업, 학습 내용)
+   - `0.3-0.4`: 낮음 (임시 정보, 실험적 내용)
+
+5. **프라이버시 범위**
+   - `private`: 개인적 학습 내용
+   - `team`: 팀 내 공유 가능한 정보
+   - `public`: 공개 가능한 일반 지식
+
+## 구체적인 사용 예시
+
+### 작업 시작 전
+```
+작업: FastAPI 엔드포인트 추가
+검색: mcp_memento_recall(query="FastAPI endpoint", tags=["python", "api"])
+```
+
+### 작업 완료 후
+```
+저장: mcp_memento_remember(
+  content="FastAPI 엔드포인트 추가 작업 완료. Pydantic 모델 검증과 에러 핸들링 구현. 주의사항: async 함수 사용 시 await 키워드 필수",
+  type="episodic",
+  tags=["python", "fastapi", "api", "success"],
+  importance=0.7,
+  privacy_scope="team"
+)
+```
+
+## 메모리 관리
+
+- 주기적으로 `mcp_memento_cleanup_memory`로 메모리 정리
+- 중요한 기억은 `mcp_memento_pin`으로 고정
+- 성능 통계는 `mcp_memento_performance_stats`로 모니터링
+
+이 규칙을 따라 AI agent는 지속적으로 학습하고 개선된 작업을 수행할 수 있습니다.

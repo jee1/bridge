@@ -68,6 +68,23 @@ Bridge는 다양한 데이터 소스(PostgreSQL, MongoDB, Elasticsearch 등)에 
 - **TimeSeriesAnalysis**: 시계열 분석 및 예측 모듈
 - **MCP 도구 확장**: advanced_statistics, interactive_charts, statistical_tests, time_series_analysis
 
+### 🔍 데이터 품질 관리 시스템
+
+- **ComprehensiveQualityMetrics**: 종합 품질 메트릭 계산 (완전성, 정확성, 일관성, 유효성)
+- **AdvancedOutlierDetector**: 고급 이상치 탐지 (Isolation Forest, LOF, One-Class SVM)
+- **DataCleaningPipeline**: 자동화된 데이터 정제 파이프라인
+- **QualityTrendAnalyzer**: 품질 트렌드 분석 및 예측
+- **MCP 도구 확장**: comprehensive_quality_metrics, advanced_outlier_detection, data_cleaning_pipeline, quality_trend_analysis, set_quality_thresholds
+
+### ⚙️ 워크플로 및 자동화 시스템
+
+- **AnalysisTemplateManager**: 분석 템플릿 관리 시스템
+- **CustomerAnalysisTemplate**: 고객 분석 템플릿 (RFM 분석, 세그멘테이션)
+- **SalesAnalysisTemplate**: 매출 분석 템플릿 (트렌드, 계절성 분석)
+- **ABTestAnalysisTemplate**: A/B 테스트 분석 템플릿 (통계적 유의성 검정)
+- **WorkflowAutomationTools**: 워크플로 자동화 및 DAG 생성
+- **MCP 도구 확장**: execute_analysis_template, list_analysis_templates, get_template_info, validate_data_for_template, create_workflow_dag, optimize_workflow_performance
+
 ### 🔒 엔터프라이즈 보안
 
 - **RBAC (역할 기반 접근 제어)**: 프로젝트, 커넥터, 데이터셋에 대한 세밀한 권한 관리
@@ -162,6 +179,16 @@ src/bridge/
 │   │   ├── advanced_visualization.py # 고급 시각화
 │   │   ├── statistical_tests.py   # 통계적 검정
 │   │   └── time_series_analysis.py # 시계열 분석
+│   ├── quality/        # 데이터 품질 관리
+│   │   ├── comprehensive_metrics.py # 종합 품질 메트릭
+│   │   ├── advanced_outlier_detection.py # 고급 이상치 탐지
+│   │   ├── data_cleaning_pipeline.py # 데이터 정제 파이프라인
+│   │   └── quality_trend_analysis.py # 품질 트렌드 분석
+│   ├── workflows/      # 워크플로 및 자동화
+│   │   └── analysis_templates.py  # 분석 템플릿 시스템
+│   ├── mcp_tools/      # MCP 도구
+│   │   ├── quality_management_tools.py # 품질 관리 도구
+│   │   └── workflow_automation_tools.py # 워크플로 자동화 도구
 │   └── utils/          # 분석 유틸리티
 ├── ml/                 # 머신러닝 모듈
 │   ├── algorithms/     # ML 알고리즘

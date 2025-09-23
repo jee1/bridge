@@ -1,0 +1,328 @@
+---
+description: 데이터 품질 관리 시스템 관련 규칙
+globs: src/bridge/analytics/quality/*.py,src/bridge/analytics/mcp_tools/quality_management_tools.py
+---
+
+# 데이터 품질 관리 시스템 가이드라인
+
+## CA 마일스톤 3.3: 데이터 품질 관리 시스템
+
+### ComprehensiveQualityMetrics 사용법
+```python
+from bridge.analytics.quality.comprehensive_metrics import ComprehensiveQualityMetrics, QualityMetrics
+from bridge.analytics.core.data_integration import UnifiedDataFrame
+
+# 품질 메트릭 계산기 초기화
+quality_calculator = ComprehensiveQualityMetrics()
+
+# 종합 품질 메트릭 계산
+metrics = quality_calculator.calculate_overall_quality(
+    data=unified_data,
+    reference_data=reference_data,  # 선택사항
+    constraints=constraints  # 선택사항
+)
+
+# 품질 메트릭 결과 확인
+print(f"완전성: {metrics.completeness:.2f}")
+print(f"정확성: {metrics.accuracy:.2f}")
+print(f"일관성: {metrics.consistency:.2f}")
+print(f"유효성: {metrics.validity:.2f}")
+print(f"전체 점수: {metrics.overall_score:.2f}")
+```
+
+### AdvancedOutlierDetector 사용법
+```python
+from bridge.analytics.quality.advanced_outlier_detection import AdvancedOutlierDetector, OutlierDetectionResult
+
+# 이상치 탐지기 초기화
+outlier_detector = AdvancedOutlierDetector()
+
+# Isolation Forest를 사용한 이상치 탐지
+isolation_result = outlier_detector.detect_outliers_isolation_forest(
+    data=unified_data,
+    contamination=0.1,
+    random_state=42
+)
+
+# LOF를 사용한 이상치 탐지
+lof_result = outlier_detector.detect_outliers_lof(
+    data=unified_data,
+    n_neighbors=20,
+    contamination=0.1
+)
+
+# 앙상블 방법을 사용한 이상치 탐지
+ensemble_result = outlier_detector.detect_outliers_ensemble(
+    data=unified_data,
+    methods=['isolation_forest', 'lof', 'one_class_svm'],
+    voting_threshold=0.5
+)
+
+# 자동 이상치 탐지 (데이터 크기에 따라 최적 방법 선택)
+auto_result = outlier_detector.detect_outliers_auto(unified_data)
+
+# 이상치 요약 정보 생성
+summary = outlier_detector.get_outlier_summary(auto_result, unified_data)
+```
+
+### DataCleaningPipeline 사용법
+```python
+from bridge.analytics.quality.data_cleaning_pipeline import DataCleaningPipeline, CleaningResult
+
+# 데이터 정제 파이프라인 초기화
+cleaning_pipeline = DataCleaningPipeline()
+
+# 기본 파이프라인 생성
+cleaning_pipeline.create_default_pipeline()
+
+# 커스텀 파이프라인 구성
+cleaning_pipeline.add_step(
+    name="remove_duplicates",
+    function=DataCleaningPipeline.remove_duplicates,
+    parameters={"keep": "first"},
+    enabled=True
+)
+
+cleaning_pipeline.add_step(
+    name="impute_missing",
+    function=DataCleaningPipeline.impute_missing_values,
+    parameters={"strategy": "mean"},
+    enabled=True
+)
+
+# 데이터 정제 실행
+cleaning_result = cleaning_pipeline.clean_data(unified_data)
+
+# 정제 결과 확인
+print(f"제거된 행: {cleaning_result.removed_rows}")
+print(f"제거된 열: {cleaning_result.removed_columns}")
+print(f"품질 개선: {cleaning_result.quality_improvement}")
+```
+
+### QualityTrendAnalyzer 사용법
+```python
+from bridge.analytics.quality.quality_trend_analysis import QualityTrendAnalyzer, QualityTrend
+
+# 품질 트렌드 분석기 초기화
+trend_analyzer = QualityTrendAnalyzer()
+
+# 품질 임계값 설정
+trend_analyzer.set_thresholds({
+    'completeness': 0.8,
+    'accuracy': 0.8,
+    'consistency': 0.8,
+    'validity': 0.8,
+    'overall': 0.8
+})
+
+# 품질 스냅샷 추가
+trend = trend_analyzer.add_quality_snapshot(unified_data)
+
+# 트렌드 분석 수행
+analysis_result = trend_analyzer.analyze_trends(days=30)
+
+# 대시보드 데이터 생성
+dashboard_data = trend_analyzer.get_quality_dashboard_data()
+```
+
+## MCP 도구 사용법
+
+### comprehensive_quality_metrics MCP 도구
+```json
+{
+  "tool": "comprehensive_quality_metrics",
+  "arguments": {
+    "data": {...},
+    "reference_data": {...},
+    "constraints": {
+      "email": {"pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"},
+      "age": {"min": 0, "max": 120}
+    }
+  }
+}
+```
+
+### advanced_outlier_detection MCP 도구
+```json
+{
+  "tool": "advanced_outlier_detection",
+  "arguments": {
+    "data": {...},
+    "method": "isolation_forest",
+    "parameters": {
+      "contamination": 0.1,
+      "random_state": 42
+    }
+  }
+}
+```
+
+### data_cleaning_pipeline MCP 도구
+```json
+{
+  "tool": "data_cleaning_pipeline",
+  "arguments": {
+    "data": {...},
+    "pipeline_config": {
+      "steps": [
+        {
+          "name": "remove_duplicates",
+          "function": "remove_duplicates",
+          "parameters": {"keep": "first"},
+          "enabled": true
+        },
+        {
+          "name": "impute_missing",
+          "function": "impute_missing_values",
+          "parameters": {"strategy": "mean"},
+          "enabled": true
+        }
+      ]
+    }
+  }
+}
+```
+
+### quality_trend_analysis MCP 도구
+```json
+{
+  "tool": "quality_trend_analysis",
+  "arguments": {
+    "data": {...},
+    "days": 30,
+    "add_snapshot": true
+  }
+}
+```
+
+### set_quality_thresholds MCP 도구
+```json
+{
+  "tool": "set_quality_thresholds",
+  "arguments": {
+    "thresholds": {
+      "completeness": 0.8,
+      "accuracy": 0.8,
+      "consistency": 0.8,
+      "validity": 0.8,
+      "overall": 0.8
+    }
+  }
+}
+```
+
+## 데이터 품질 관리 패턴
+
+### 1. 종합적 품질 평가
+```python
+# 1단계: 품질 메트릭 계산
+metrics = quality_calculator.calculate_overall_quality(data)
+
+# 2단계: 이상치 탐지
+outliers = outlier_detector.detect_outliers_auto(data)
+
+# 3단계: 데이터 정제
+cleaning_result = cleaning_pipeline.clean_data(data)
+
+# 4단계: 품질 트렌드 분석
+trend_analysis = trend_analyzer.analyze_quality_trends(data)
+```
+
+### 2. 품질 모니터링 워크플로우
+```python
+# 1단계: 품질 스냅샷 추가
+trend_analyzer.add_quality_snapshot(data)
+
+# 2단계: 트렌드 분석
+trend_result = trend_analyzer.analyze_trends(days=30)
+
+# 3단계: 경고 확인
+if trend_result.alerts:
+    for alert in trend_result.alerts:
+        logger.warning(f"품질 경고: {alert}")
+
+# 4단계: 권장사항 적용
+for recommendation in trend_result.recommendations:
+    logger.info(f"권장사항: {recommendation}")
+```
+
+### 3. 자동화된 데이터 정제
+```python
+# 1단계: 파이프라인 구성
+pipeline = DataCleaningPipeline()
+pipeline.create_default_pipeline()
+
+# 2단계: 정제 실행
+cleaning_result = pipeline.clean_data(data)
+
+# 3단계: 품질 개선 확인
+if cleaning_result.quality_improvement['improvement'] > 0.1:
+    logger.info("품질이 크게 개선되었습니다")
+else:
+    logger.warning("품질 개선이 미미합니다")
+
+# 4단계: 정제된 데이터 사용
+cleaned_data = cleaning_result.cleaned_data
+```
+
+## 성능 최적화
+
+### 메모리 효율적인 품질 분석
+```python
+# 대용량 데이터를 위한 청크별 분석
+def analyze_quality_in_chunks(data, chunk_size=10000):
+    quality_scores = []
+    
+    for i in range(0, len(data), chunk_size):
+        chunk = data[i:i+chunk_size]
+        metrics = quality_calculator.calculate_overall_quality(chunk)
+        quality_scores.append(metrics.overall_score)
+    
+    return np.mean(quality_scores)
+```
+
+### 병렬 이상치 탐지
+```python
+from multiprocessing import Pool
+
+def detect_outliers_parallel(data_chunks):
+    with Pool(processes=4) as pool:
+        results = pool.map(outlier_detector.detect_outliers_auto, data_chunks)
+    return results
+```
+
+## 에러 처리
+
+### 품질 메트릭 계산 에러 처리
+```python
+try:
+    metrics = quality_calculator.calculate_overall_quality(data)
+except QualityCalculationError as e:
+    logger.error(f"품질 메트릭 계산 실패: {e}")
+    # 기본 메트릭으로 대체
+    metrics = QualityMetrics(
+        completeness=0.0, accuracy=0.0, consistency=0.0, validity=0.0,
+        overall_score=0.0, missing_ratio=1.0, duplicate_ratio=1.0,
+        outlier_ratio=1.0, constraint_violations=0, data_type_consistency=0.0,
+        range_violations=0, format_violations=0
+    )
+```
+
+### 이상치 탐지 에러 처리
+```python
+try:
+    outliers = outlier_detector.detect_outliers_auto(data)
+except OutlierDetectionError as e:
+    logger.error(f"이상치 탐지 실패: {e}")
+    # 기본 이상치 탐지로 대체
+    outliers = outlier_detector.detect_outliers_isolation_forest(data)
+```
+
+## 주의사항
+
+1. **품질 임계값 설정**: 비즈니스 요구사항에 맞는 적절한 임계값 설정
+2. **이상치 해석**: 이상치가 실제 이상인지 데이터 특성인지 구분
+3. **정제 파이프라인**: 과도한 정제로 인한 데이터 손실 방지
+4. **트렌드 분석**: 충분한 데이터 포인트 확보 후 트렌드 분석
+5. **성능 고려**: 대용량 데이터 처리 시 메모리 사용량 모니터링
+6. **품질 지속성**: 정기적인 품질 모니터링 및 개선
