@@ -1,0 +1,87 @@
+# Bridge 프로젝트 Cursor 규칙
+
+이 파일은 Bridge 프로젝트의 Cursor IDE 설정을 정의합니다.
+상세한 규칙은 `.cursor/rules/` 디렉토리의 개별 파일들을 참조하세요.
+
+## 프로젝트 개요
+Bridge는 다양한 데이터 소스와 AI 오케스트레이션을 파이썬 기반으로 통합하여, Model Context Protocol(MCP)에 맞춘 컨텍스트 패키징과 도구 실행을 자동화하는 시스템입니다.
+
+## 핵심 규칙
+
+### 1. 프로젝트 구조
+- `/docs/` - 제품 기획, MCP 사양, 온보딩 자료 보관
+- `/src/bridge/` - 애플리케이션 코드 (도메인별 하위 폴더)
+- `/schema/` - 공용 스키마와 데이터 계약 (JSON/YAML)
+- `/assets/` - 예제 데이터 및 프롬프트 템플릿
+- `/tests/` - 테스트 코드 (소스 구조 반영)
+
+### 2. 코딩 스타일
+- **PEP 8 준수**: Python 공식 스타일 가이드라인
+- **Black 포매터**: 라인 길이 100자
+- **isort**: import 문 정렬
+- **타입 힌트**: 모든 함수와 클래스에 필수
+- **Python 3.11**: 최신 Python 기능 활용
+
+### 3. 네이밍 컨벤션
+- 클래스명: PascalCase (`DatabaseConnector`, `ElasticsearchConnector`)
+- 함수/변수명: snake_case
+- 환경 변수: `BRIDGE_<DOMAIN>_<PURPOSE>` 패턴
+
+### 4. 개발 워크플로우
+- 커밋 메시지: `type(scope): summary` 형식
+- 테스트 커버리지: 최소 80% 유지
+- 코드 리뷰: 필수 (타입 힌트, 테스트, 문서화 포함)
+
+### 5. 보안 및 설정
+- 민감 자격 증명: `.env` 대신 시크릿 매니저 사용
+- 외부 쿼리: 파라미터 바인딩 강제
+- 감사 로그: `/logs/audit/`에 구조화된 JSON으로 저장
+
+## 상세 규칙 참조
+- 프로젝트 구조: `.cursor/rules/project-structure.mdc`
+- Python 코딩 스타일: `.cursor/rules/python-coding-style.mdc`
+- 개발 워크플로우: `.cursor/rules/development-workflow.mdc`
+- 테스트 품질: `.cursor/rules/testing-quality.mdc`
+- 보안 거버넌스: `.cursor/rules/security-governance.mdc`
+- MCP 아키텍처: `.cursor/rules/mcp-architecture.mdc`
+- 통합 데이터 레이어: `.cursor/rules/integrated-data-layer.mdc`
+- ML 모델: `.cursor/rules/ml-models.mdc`
+- ML 알고리즘: `.cursor/rules/ml-algorithms.mdc`
+- 고급 분석: `.cursor/rules/advanced-analytics.mdc`
+- 데이터 품질 관리: `.cursor/rules/data-quality-management.mdc`
+- 거버넌스 계약: `.cursor/rules/governance-contracts.mdc`
+- 관측성 모니터링: `.cursor/rules/observability-monitoring.mdc`
+- 워크플로우 자동화: `.cursor/rules/workflow-automation.mdc`
+- 기술 스택 의존성: `.cursor/rules/tech-stack-dependencies.mdc`
+- Greeum 메모리 규칙: `.cursor/rules/greeum-memory-rule.mdc`
+- Memento 메모리 규칙: `.cursor/rules/memento-memory-rule.mdc`
+
+## 주요 명령어
+```bash
+# 의존성 설치 및 환경 초기화
+make install
+
+# 코드 포매팅 및 린터
+make fmt
+
+# 전체 테스트 실행
+make test
+
+# 개발 서버 실행
+make dev
+
+# Celery 워커 실행
+make worker
+
+# Docker 환경
+make docker-build
+make docker-up
+make docker-down
+make docker-test
+```
+
+## 환경 변수 패턴
+- `BRIDGE_DATABASE_HOST` - 데이터베이스 호스트
+- `BRIDGE_ELASTICSEARCH_API_KEY` - Elasticsearch API 키
+- `BRIDGE_OPENAI_API_KEY` - OpenAI API 키
+- `BRIDGE_MCP_MODE` - MCP 서버 모드 (development/production/real/mock)

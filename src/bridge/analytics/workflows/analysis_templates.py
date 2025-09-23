@@ -186,9 +186,24 @@ class CustomerAnalysisTemplate(BaseAnalysisTemplate):
             )
 
             # RFM 점수 정규화 (1-5 스케일)
-            rfm_df["r_score"] = pd.qcut(rfm_df["recency"], 5, labels=[5, 4, 3, 2, 1])
-            rfm_df["f_score"] = pd.qcut(rfm_df["frequency"], 5, labels=[1, 2, 3, 4, 5])
-            rfm_df["m_score"] = pd.qcut(rfm_df["monetary"], 5, labels=[1, 2, 3, 4, 5])
+            # 중복된 값이 있을 경우를 처리하기 위해 try-except 사용
+            try:
+                rfm_df["r_score"] = pd.qcut(rfm_df["recency"], 5, labels=[5, 4, 3, 2, 1], duplicates='drop')
+            except ValueError:
+                # recency 값이 모두 동일한 경우
+                rfm_df["r_score"] = 3  # 중간값으로 설정
+            
+            try:
+                rfm_df["f_score"] = pd.qcut(rfm_df["frequency"], 5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+            except ValueError:
+                # frequency 값이 모두 동일한 경우
+                rfm_df["f_score"] = 3  # 중간값으로 설정
+            
+            try:
+                rfm_df["m_score"] = pd.qcut(rfm_df["monetary"], 5, labels=[1, 2, 3, 4, 5], duplicates='drop')
+            except ValueError:
+                # monetary 값이 모두 동일한 경우
+                rfm_df["m_score"] = 3  # 중간값으로 설정
 
             # RFM 점수 합계
             rfm_df["rfm_score"] = (
@@ -217,14 +232,18 @@ class CustomerAnalysisTemplate(BaseAnalysisTemplate):
             # 고객별 집계
             customer_summary = (
                 df.groupby("customer_id")
-                .agg({"purchase_amount": ["sum", "mean", "count"], "purchase_date": ["min", "max"]})
+                .agg({
+                    "purchase_amount": ["sum", "mean", "count"], 
+                    "purchase_date": ["min", "max"]
+                })
                 .reset_index()
             )
 
+            # 컬럼명을 평평하게 만들기 (튜플 형태 제거)
             customer_summary.columns = [
                 "customer_id",
                 "total_spent",
-                "avg_purchase",
+                "avg_purchase", 
                 "purchase_count",
                 "first_purchase",
                 "last_purchase",
@@ -245,12 +264,22 @@ class CustomerAnalysisTemplate(BaseAnalysisTemplate):
 
             customer_summary["segment"] = segments
 
+            # 세그먼트별 통계 계산 (튜플 컬럼명 문제 해결)
+            segment_stats = customer_summary.groupby("segment").agg({
+                "total_spent": ["mean", "std"], 
+                "purchase_count": ["mean", "std"]
+            })
+            
+            # 컬럼명을 평평하게 만들기
+            segment_stats.columns = [
+                "total_spent_mean", "total_spent_std",
+                "purchase_count_mean", "purchase_count_std"
+            ]
+            
             return {
                 "segmentation_data": customer_summary.to_dict("records"),
                 "segment_distribution": pd.Series(segments).value_counts().to_dict(),
-                "segment_stats": customer_summary.groupby("segment")
-                .agg({"total_spent": ["mean", "std"], "purchase_count": ["mean", "std"]})
-                .to_dict(),
+                "segment_stats": segment_stats.to_dict(),
             }
 
         except Exception as e:
@@ -277,11 +306,17 @@ class CustomerAnalysisTemplate(BaseAnalysisTemplate):
             )
 
             # 고객별 구매 패턴
-            customer_patterns = (
+            customer_patterns_df = (
                 df.groupby("customer_id")
                 .agg({"purchase_amount": ["sum", "mean", "std"], "purchase_date": "count"})
-                .to_dict()
             )
+            
+            # 컬럼명을 평평하게 만들기
+            customer_patterns_df.columns = [
+                "purchase_amount_sum", "purchase_amount_mean", "purchase_amount_std", "purchase_count"
+            ]
+            
+            customer_patterns = customer_patterns_df.to_dict()
 
             return {
                 "monthly_patterns": monthly_pattern,
@@ -917,8 +952,10 @@ class AnalysisTemplateManager:
         Returns:
             템플릿 목록
         """
+        from dataclasses import asdict
+        
         return [
-            {"name": name, "info": template.get_template_info()}
+            {"name": name, "info": asdict(template.get_template_info())}
             for name, template in self.templates.items()
         ]
 
