@@ -210,3 +210,5 @@ yarn-error.log*
 secrets/
 credentials/
 *.secret
+
+.serena/

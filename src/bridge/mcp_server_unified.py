@@ -34,6 +34,34 @@ PLACEHOLDER_CHART_DATA = (
 )
 
 
+def _convert_to_json_serializable(obj: Any) -> Any:
+    """객체를 JSON 직렬화 가능한 형태로 변환합니다."""
+    if isinstance(obj, dict):
+        return {key: _convert_to_json_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_to_json_serializable(item) for item in obj]
+    elif isinstance(obj, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64, np.float32, np.float16)):
+        return float(obj)
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif hasattr(obj, 'to_dict'):
+        return _convert_to_json_serializable(obj.to_dict())
+    elif hasattr(obj, 'item'):
+        return obj.item()
+    elif hasattr(obj, '__dict__'):
+        # 객체의 속성을 딕셔너리로 변환
+        try:
+            return _convert_to_json_serializable(obj.__dict__)
+        except:
+            return str(obj)
+    else:
+        return obj
+
+
 class UnifiedBridgeMCPServer:
     """통합된 Bridge MCP 서버 - 다양한 모드 지원"""
 
@@ -245,15 +273,40 @@ class UnifiedBridgeMCPServer:
             },
             {
                 "name": "analyze_data",
-                "description": "Bridge 오케스트레이터를 통해 데이터 분석",
+                "description": "Bridge Analytics의 통합 데이터 분석 도구 - 다양한 데이터 소스에 대한 종합적인 분석을 제공합니다",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
+                        "data": {
+                            "type": "object", 
+                            "description": "분석할 데이터 (pandas DataFrame, dict, list, 다중 소스 딕셔너리 등)"
+                        },
                         "intent": {"type": "string", "description": "분석 의도 설명"},
-                        "sources": {"type": "array", "items": {"type": "string"}},
-                        "context": {"type": "object"},
+                        "sources": {"type": "array", "items": {"type": "string"}, "description": "데이터 소스 목록"},
+                        "context": {
+                            "type": "object",
+                            "description": "분석 컨텍스트 및 설정",
+                            "properties": {
+                                "config": {
+                                    "type": "object",
+                                    "description": "분석 설정",
+                                    "properties": {
+                                        "enable_data_integration": {"type": "boolean", "description": "데이터 통합 활성화", "default": True},
+                                        "include_descriptive_stats": {"type": "boolean", "description": "기술 통계 포함", "default": True},
+                                        "include_correlation_analysis": {"type": "boolean", "description": "상관관계 분석 포함", "default": True},
+                                        "include_distribution_analysis": {"type": "boolean", "description": "분포 분석 포함", "default": True},
+                                        "include_quality_metrics": {"type": "boolean", "description": "품질 메트릭 포함", "default": True},
+                                        "generate_charts": {"type": "boolean", "description": "차트 생성", "default": True},
+                                        "generate_dashboard": {"type": "boolean", "description": "대시보드 생성", "default": True},
+                                        "generate_report": {"type": "boolean", "description": "리포트 생성", "default": True},
+                                        "quality_threshold": {"type": "number", "description": "품질 임계값", "default": 0.8},
+                                        "verbose": {"type": "boolean", "description": "상세 출력", "default": False}
+                                    }
+                                }
+                            }
+                        },
                     },
-                    "required": ["intent"],
+                    "required": [],
                 },
             },
             {
@@ -1098,48 +1151,85 @@ class UnifiedBridgeMCPServer:
             return {"success": False, "error": str(e), "database": database}
 
     async def _analyze_data(self, args: Dict[str, Any]) -> Dict[str, Any]:
-        """데이터 분석 실행"""
-        intent = args.get("intent", "")
-        sources = args.get("sources", [])
-        context = args.get("context", {})
-
+        """데이터 분석 실행 - Bridge Analytics의 analyze_data 함수 사용"""
         try:
-            if self.mode in ["real", "production"]:
-                # 실제 분석 로직 (향후 구현)
-                analysis_result = {
-                    "intent": intent,
-                    "sources_analyzed": sources,
-                    "context": context,
-                    "analysis": f"'{intent}'에 대한 실제 분석이 요청되었습니다 (구현 예정)",
-                    "recommendations": [
-                        "실제 데이터 소스 연결을 확인하세요",
-                        "필요한 도구를 지정하세요",
-                        "컨텍스트 정보를 추가하세요",
-                    ],
-                    "status": "completed",
-                    "mode": self.mode,
+            from bridge.analytics import analyze_data, AnalysisConfig
+            
+            # 입력 데이터 추출
+            data = args.get("data", {})
+            intent = args.get("intent", "")
+            sources = args.get("sources", [])
+            context = args.get("context", {})
+            
+            # 분석 설정 추출
+            config_params = context.get("config", {})
+            
+            # AnalysisConfig 생성
+            config = AnalysisConfig(
+                enable_data_integration=config_params.get("enable_data_integration", True),
+                include_descriptive_stats=config_params.get("include_descriptive_stats", True),
+                include_correlation_analysis=config_params.get("include_correlation_analysis", True),
+                include_distribution_analysis=config_params.get("include_distribution_analysis", True),
+                include_quality_metrics=config_params.get("include_quality_metrics", True),
+                generate_charts=config_params.get("generate_charts", True),
+                generate_dashboard=config_params.get("generate_dashboard", True),
+                generate_report=config_params.get("generate_report", True),
+                quality_threshold=config_params.get("quality_threshold", 0.8),
+                verbose=config_params.get("verbose", False)
+            )
+            
+            # 데이터가 없는 경우 모의 데이터 생성
+            if not data:
+                import pandas as pd
+                import numpy as np
+                
+                np.random.seed(42)
+                mock_data = {
+                    'id': range(1, 101),
+                    'value1': np.random.normal(100, 20, 100),
+                    'value2': np.random.normal(50, 10, 100),
+                    'category': np.random.choice(['A', 'B', 'C'], 100),
+                    'score': np.random.uniform(0, 100, 100)
                 }
-            else:
-                # 모의 분석 응답
-                analysis_result = {
-                    "intent": intent,
-                    "sources_analyzed": sources,
-                    "context": context,
-                    "analysis": f"'{intent}'에 대한 분석이 요청되었습니다 (모의 응답)",
-                    "insights": [
-                        "데이터 품질이 양호합니다",
-                        "추가 분석이 필요할 수 있습니다",
-                        "고객 세분화 분석을 권장합니다",
-                    ],
-                    "recommendations": ["정기적인 데이터 품질 검사", "고급 분석 도구 도입 검토"],
-                    "status": "completed",
-                    "mode": self.mode,
-                }
-
-            return analysis_result
+                data = pd.DataFrame(mock_data)
+            
+            # analyze_data 함수 실행
+            result = analyze_data(data, config)
+            
+            # 결과 포맷팅
+            analysis_result = {
+                "success": result.success,
+                "intent": intent,
+                "sources_analyzed": sources,
+                "context": context,
+                "analysis_time": result.analysis_time,
+                "data_summary": result.data_summary,
+                "descriptive_stats": result.descriptive_stats,
+                "correlation_analysis": result.correlation_analysis,
+                "distribution_analysis": result.distribution_analysis,
+                "quality_metrics": result.quality_metrics,
+                "charts": {
+                    "available_charts": list(result.charts.keys()) if result.charts else [],
+                    "chart_count": len(result.charts) if result.charts else 0
+                } if result.charts else None,
+                "dashboard": {"available": result.dashboard is not None} if result.dashboard else None,
+                "report": {"available": result.report is not None} if result.report else None,
+                "errors": result.errors,
+                "warnings": result.warnings,
+                "mode": self.mode,
+            }
+            
+            # JSON 직렬화 가능한 형태로 변환
+            return _convert_to_json_serializable(analysis_result)
+            
         except Exception as e:
             logger.error(f"분석 실행 실패: {e}")
-            return {"success": False, "error": str(e), "intent": intent}
+            return {
+                "success": False, 
+                "error": str(e), 
+                "intent": args.get("intent", ""),
+                "mode": self.mode
+            }
 
     # CA 마일스톤 3.3: 데이터 품질 관리 시스템 핸들러들
     async def _comprehensive_quality_metrics(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -1456,12 +1546,13 @@ class UnifiedBridgeMCPServer:
             else:
                 return {"success": False, "error": f"지원하지 않는 분석 유형: {analysis_type}"}
 
-            return {
+            result_dict = {
                 "success": True,
                 "analysis_type": analysis_type,
                 "result": result,
                 "data_shape": {"rows": df.num_rows, "columns": df.num_columns},
             }
+            return _convert_to_json_serializable(result_dict)
 
         except ModuleNotFoundError as exc:
             if getattr(exc, "name", None) == "pyarrow":
@@ -1508,7 +1599,8 @@ class UnifiedBridgeMCPServer:
                 checker = QualityChecker()
                 profile["quality"] = checker.generate_quality_report(df)
 
-            return {"success": True, "profile": profile, "mode": self.mode}
+            result = {"success": True, "profile": profile, "mode": self.mode}
+            return _convert_to_json_serializable(result)
 
         except ModuleNotFoundError as exc:
             if getattr(exc, "name", None) == "pyarrow":
@@ -2291,12 +2383,13 @@ class UnifiedBridgeMCPServer:
                 "error": f"지원하지 않는 분석 유형: {analysis_type}",
             }
 
-        return {
+        result_dict = {
             "success": True,
             "analysis_type": analysis_type,
             "result": result,
             "data_shape": {"rows": int(df.shape[0]), "columns": int(df.shape[1])},
         }
+        return _convert_to_json_serializable(result_dict)
 
     def _data_profiler_fallback(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """pyarrow 없이 pandas 기반 데이터 프로파일링을 수행한다."""
@@ -2320,7 +2413,8 @@ class UnifiedBridgeMCPServer:
             quality = self._quality_checker_fallback({"data": df})["quality_report"]
             profile["quality"] = quality
 
-        return {"success": True, "profile": profile, "mode": self.mode}
+        result = {"success": True, "profile": profile, "mode": self.mode}
+        return _convert_to_json_serializable(result)
 
     def _outlier_detector_fallback(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """pyarrow 없이 pandas 기반 이상치 탐지를 수행한다."""

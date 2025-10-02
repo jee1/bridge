@@ -35,12 +35,44 @@ Bridge는 다양한 데이터 소스(PostgreSQL, MongoDB, Elasticsearch 등)에 
 
 ### 📊 고급 분석 도구
 
+- **통합 분석 함수**: `analyze_data()` - 모든 분석 기능을 통합한 단일 인터페이스
 - **통계 분석**: 기술 통계, 분포 분석, 상관관계 분석
 - **데이터 프로파일링**: 데이터 품질 검사 및 기본 정보 수집
 - **이상치 탐지**: IQR, Z-score 방법을 통한 이상치 식별
 - **차트 생성**: 막대, 선, 산점도, 히스토그램, 박스 플롯, 히트맵 생성
 - **품질 검사**: 결측값, 이상치, 일관성 검사
 - **리포트 생성**: 종합 분석 리포트 및 대시보드 생성
+
+#### 🚀 analyze_data() 함수
+
+Bridge Analytics의 핵심 기능인 `analyze_data()` 함수는 다양한 데이터 소스에 대한 종합적인 분석을 제공합니다.
+
+```python
+from bridge.analytics import analyze_data, quick_analysis, comprehensive_analysis
+
+# 기본 분석
+result = quick_analysis(your_dataframe)
+
+# 종합 분석 (모든 기능 포함)
+result = comprehensive_analysis(your_dataframe)
+
+# 커스텀 설정으로 분석
+from bridge.analytics import AnalysisConfig
+config = AnalysisConfig(
+    include_quality_metrics=True,
+    generate_charts=True,
+    quality_threshold=0.9
+)
+result = analyze_data(your_data, config)
+```
+
+**주요 기능:**
+- 📊 **다양한 데이터 소스 지원**: pandas DataFrame, Arrow Table, 딕셔너리, 다중 소스 데이터
+- 🔍 **자동 데이터 통합**: 다중 소스 데이터를 자동으로 통합하고 스키마 매핑
+- 📈 **통계 분석**: 기술 통계, 상관관계 분석, 분포 분석
+- 🛡️ **데이터 품질 검증**: 완전성, 정확성, 일관성, 유효성 메트릭
+- 📊 **시각화**: 히스토그램, 산점도, 상관관계 히트맵, 대시보드 생성
+- 📋 **종합 리포트**: 분석 결과를 포함한 상세한 리포트 생성
 
 ### 🤖 머신러닝 및 AI
 
