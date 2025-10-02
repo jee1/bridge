@@ -186,6 +186,8 @@ src/bridge/
 ├── connectors/          # 데이터 소스 커넥터
 │   ├── base.py         # BaseConnector 추상 클래스
 │   ├── postgres.py     # PostgreSQL 커넥터
+│   ├── mysql.py        # MySQL 커넥터
+│   ├── elasticsearch.py # Elasticsearch 커넥터
 │   ├── mock.py         # Mock 커넥터 (테스트용)
 │   └── registry.py     # 커넥터 레지스트리
 ├── orchestrator/        # FastAPI 오케스트레이터
@@ -228,13 +230,19 @@ src/bridge/
 │   │   ├── anomaly_detection.py # 이상치 탐지
 │   │   ├── clustering.py       # 클러스터링
 │   │   └── dimensionality_reduction.py # 차원 축소
-│   ├── models/         # 모델 관리
-│   │   ├── registry.py         # 모델 레지스트리
-│   │   ├── inference.py        # 모델 추론
-│   │   └── versioning.py       # 모델 버전 관리
-│   └── pipelines/      # ML 파이프라인
+│   └── models/         # 모델 관리
+│       ├── registry.py         # 모델 레지스트리
+│       ├── inference.py        # 모델 추론
+│       └── versioning.py       # 모델 버전 관리
 ├── governance/         # 데이터 거버넌스
 │   └── contracts.py    # 데이터 계약 관리
+├── automation/         # 자동화 시스템
+│   ├── notification_system.py  # 알림 시스템
+│   ├── quality_monitor.py      # 품질 모니터링
+│   ├── report_automation.py    # 리포트 자동화
+│   └── scheduler.py            # 작업 스케줄러
+├── mcp_server_unified.py # 통합 MCP 서버
+├── mcp_server.py       # MCP 서버 (통합 서버로 리다이렉트)
 └── cli.py              # CLI 인터페이스
 ```
 
@@ -309,19 +317,6 @@ BRIDGE_MCP_MODE=development python -m bridge.mcp_server_unified
 BRIDGE_MCP_MODE=production python -m bridge.mcp_server_unified
 BRIDGE_MCP_MODE=real python -m bridge.mcp_server_unified
 BRIDGE_MCP_MODE=mock python -m bridge.mcp_server_unified
-
-# 개별 서버 실행 (개발/테스트용)
-bridge-mcp
-bridge-mcp-real
-python -m bridge.mcp_server_robust
-python -m bridge.mcp_server_real
-python -m bridge.mcp_server_working
-python -m bridge.mcp_server_minimal
-python -m bridge.mcp_server_simple
-python -m bridge.mcp_server_fixed
-
-# 스크립트 파일을 통한 실행
-python scripts/run_mcp_server.py
 ```
 
 ### 8. CLI로 작업 제출 및 상태 폴링 (선택사항)
@@ -614,7 +609,7 @@ Bridge MCP는 **엔터프라이즈 데이터를 AI와 연결하는 다리** 역�
 
 1. **커넥터 확장**: MongoDB, PostgreSQL 커넥터 구현 완료 ✅
 2. **AI 통합**: LangChain, OpenAI SDK 통합 완료 ✅
-3. **MCP 서버**: 1개 통합 서버 + 7개 개별 서버 구현 완료 ✅
+3. **MCP 서버**: 통합 서버 구현 완료 ✅
 4. **ML 기능**: 시계열 분석, 모델 관리, 거버넌스 계약 구현 완료 ✅
 5. **통합 데이터 분석 레이어**: CA 마일스톤 3.1 구현 완료 ✅
 6. **고급 통계 분석 및 시각화**: CA 마일스톤 3.2 구현 완료 ✅

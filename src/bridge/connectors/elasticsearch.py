@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import numbers
 from typing import Any, AsyncIterator, Dict, List, cast
-from urllib.parse import urlparse
 
 from elasticsearch import AsyncElasticsearch
 
@@ -26,41 +25,36 @@ class ElasticsearchConnector(BaseConnector):
         """Elasticsearch 클라이언트를 생성한다."""
         if self._client is None:
             try:
-                configured_url = str(self.settings.get("url", "")).strip()
-                configured_host = str(self.settings.get("host", "")).strip()
-                configured_port = self.settings.get("port")
-                use_ssl = bool(self.settings.get("use_ssl", False))
+                # 필수 설정 검증
+                required_settings = ["host", "port"]
+                missing_settings = [
+                    setting for setting in required_settings if setting not in self.settings
+                ]
+                if missing_settings:
+                    raise ConfigurationError(f"필수 설정이 누락되었습니다: {missing_settings}")
 
-                if configured_url:
-                    parsed = urlparse(configured_url)
-                    if not (parsed.scheme and parsed.hostname and parsed.port):
-                        raise ConfigurationError(
-                            "Elasticsearch URL이 잘못되었습니다. 예: https://localhost:9200"
-                        )
-                    host_url = configured_url
-                    use_ssl = parsed.scheme == "https"
-                else:
-                    if not configured_host:
-                        raise ConfigurationError("Elasticsearch host 설정이 비어있습니다")
-                    port = self._validate_port(configured_port)
-                    scheme = "https" if use_ssl else "http"
-                    host_url = f"{scheme}://{configured_host}:{port}"
-
+                # Elasticsearch 클라이언트 설정
+                scheme = "https" if self.settings.get("use_ssl", False) else "http"
+                port = self._validate_port(self.settings.get("port"))
+                host_url = f"{scheme}://{self.settings['host']}:{port}"
                 logger.info(f"Elasticsearch URL 생성: {host_url}")
 
-                client_kwargs: Dict[str, Any] = {
-                    "hosts": [host_url],
-                    "verify_certs": use_ssl,
-                    "request_timeout": 30,
-                    "retry_on_timeout": True,
-                }
-
-                username = str(self.settings.get("username", "")).strip()
-                password = str(self.settings.get("password", "")).strip()
-                if username and password:
-                    client_kwargs["basic_auth"] = (username, password)
-
-                self._client = AsyncElasticsearch(**client_kwargs)
+                # AsyncElasticsearch 클라이언트 생성
+                if self.settings.get("username") and self.settings.get("password"):
+                    self._client = AsyncElasticsearch(
+                        hosts=[host_url],
+                        basic_auth=(self.settings["username"], self.settings["password"]),
+                        verify_certs=self.settings.get("use_ssl", False),
+                        request_timeout=30,
+                        retry_on_timeout=True,
+                    )
+                else:
+                    self._client = AsyncElasticsearch(
+                        hosts=[host_url],
+                        verify_certs=self.settings.get("use_ssl", False),
+                        request_timeout=30,
+                        retry_on_timeout=True,
+                    )
 
                 logger.info(f"Elasticsearch 클라이언트 생성 성공: {host_url}")
 
@@ -74,13 +68,10 @@ class ElasticsearchConnector(BaseConnector):
         """연결을 테스트한다."""
         try:
             client = await self._get_client()
-            # ping 대신 info API 사용
-            response = await client.info()
+            response = await client.ping()
             if not response:
-                raise ConnectionError("Elasticsearch info 조회 실패")
-            logger.info(
-                f"Elasticsearch 연결 테스트 성공: {response.get('cluster_name', 'unknown')}"
-            )
+                raise ConnectionError("Elasticsearch ping 실패")
+            logger.info("Elasticsearch 연결 테스트 성공")
             return True
         except Exception as e:
             logger.error(f"Elasticsearch 연결 실패: {e}")
