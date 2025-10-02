@@ -5,19 +5,33 @@ from __future__ import annotations
 import logging
 from typing import Any, AsyncIterator, Dict
 
-import asyncpg
-
 from .base import BaseConnector
 from .exceptions import ConfigurationError, ConnectionError, MetadataError, QueryExecutionError
 
 logger = logging.getLogger(__name__)
 
+# asyncpg 의존성 확인
+try:
+    import asyncpg
+    ASYNCPG_AVAILABLE = True
+except ImportError:
+    ASYNCPG_AVAILABLE = False
+    asyncpg = None
+
 
 class PostgresConnector(BaseConnector):
     """PostgreSQL 데이터 접근을 담당한다."""
 
-    async def _get_pool(self) -> asyncpg.Pool:
+    def __init__(self, name: str, settings: Dict[str, Any]):
+        if not ASYNCPG_AVAILABLE:
+            raise ImportError("asyncpg가 설치되지 않았습니다. 'pip install asyncpg'로 설치하세요.")
+        super().__init__(name, settings)
+
+    async def _get_pool(self):
         """연결 풀을 생성한다."""
+        if not ASYNCPG_AVAILABLE:
+            raise ImportError("asyncpg가 설치되지 않았습니다.")
+            
         try:
             # 필수 설정 검증
             required_settings = ["host", "port", "database", "user", "password"]
@@ -48,6 +62,9 @@ class PostgresConnector(BaseConnector):
 
     async def test_connection(self) -> bool:  # type: ignore[override]
         """연결을 테스트한다."""
+        if not ASYNCPG_AVAILABLE:
+            raise ImportError("asyncpg가 설치되지 않았습니다.")
+            
         try:
             async with await self._get_pool() as pool:
                 async with pool.acquire() as connection:
@@ -60,6 +77,9 @@ class PostgresConnector(BaseConnector):
 
     async def get_metadata(self) -> Dict[str, Any]:  # type: ignore[override]
         """메타데이터를 조회한다."""
+        if not ASYNCPG_AVAILABLE:
+            raise ImportError("asyncpg가 설치되지 않았습니다.")
+            
         query = """
         SELECT table_schema, table_name, column_name, data_type
         FROM information_schema.columns
@@ -83,6 +103,9 @@ class PostgresConnector(BaseConnector):
         self, query: str, params: Dict[str, Any] | None = None
     ) -> AsyncIterator[Dict[str, Any]]:
         """쿼리를 실행한다."""
+        if not ASYNCPG_AVAILABLE:
+            raise ImportError("asyncpg가 설치되지 않았습니다.")
+            
         params = params or {}
         try:
             # 쿼리 검증
